@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Gastos | Dashboard Personal</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect rx=%2224%22 width=%22100%22 height=%22100%22 fill=%22%231b7f5c%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22>$</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f7f6; --panel:#ffffff; --panel2:#f0f4f2; --text:#15231d; --muted:#6f7e77;
+  --border:#dfe7e3; --accent:#1b7f5c; --accent2:#daf0e7; --danger:#bd3f4a;
+  --warning:#9a6a13; --shadow:0 8px 30px rgba(31,53,44,.07);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}
+.app{max-width:1500px;margin:auto;padding:24px}
+.topbar{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.title h1{margin:0;font-size:29px;letter-spacing:-.7px}.title p{margin:7px 0 0;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;color:var(--text);font-weight:650}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn:hover{filter:brightness(.98)}
+.tabs{display:flex;gap:6px;overflow:auto;padding:6px;background:#eaf0ed;border-radius:14px;margin-bottom:18px}
+.tab{white-space:nowrap;border:0;background:transparent;padding:10px 14px;border-radius:10px;cursor:pointer;color:#53645c;font-weight:700}
+.tab.active{background:white;color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.page{display:none}.page.active{display:block}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#fff8e8;color:#725018;border:1px solid #f0dfb5;margin-bottom:16px;font-size:13px}
+.status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.chip{padding:7px 10px;border:1px solid var(--border);background:white;border-radius:999px;font-size:12px;color:var(--muted)}
+.grid-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;min-width:0;box-shadow:var(--shadow)}
+.kpi .label{font-size:12px;color:var(--muted);margin-bottom:8px}.kpi .value{font-size:24px;font-weight:780;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:6px}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin:0 0 3px;font-size:15px}.card .desc{color:var(--muted);font-size:12px;margin-bottom:12px}
+.chart-wrap{position:relative;height:310px}.chart-wrap.sm{height:260px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:end}.field{display:flex;flex-direction:column;gap:6px;min-width:160px}.field label{font-size:11px;color:var(--muted);font-weight:700}
+select,input{border:1px solid var(--border);border-radius:10px;background:white;padding:9px 10px;color:var(--text);min-height:40px}
+.table-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+.table-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;border-bottom:1px solid var(--border)}
+.table-head h3{margin:0;font-size:15px}.table-head span{font-size:12px;color:var(--muted)}
+.table-scroll{overflow:auto;max-height:520px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:11px 12px;border-bottom:1px solid #edf1ef;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#f8faf9;color:#66766e;font-size:11px;text-transform:uppercase;letter-spacing:.35px;z-index:2}
+td.num{text-align:right;font-variant-numeric:tabular-nums}.pill{display:inline-flex;padding:4px 8px;border-radius:999px;background:var(--panel2);font-size:11px}
+.pill.green{background:var(--accent2);color:#116546}.pill.warn{background:#fff0cd;color:#80560a}.pill.red{background:#fde7e9;color:#97333d}
+.progress{height:7px;background:#e9efec;border-radius:999px;overflow:hidden;min-width:90px}.progress>i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.isolated{display:inline-flex;background:#f0eafa;color:#624493;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:750;margin-bottom:12px}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,25,21,.38);z-index:30;padding:22px;overflow:auto}.modal-backdrop.show{display:block}
+.modal{max-width:680px;margin:5vh auto;background:white;border-radius:18px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.2)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modal-head h2{font-size:20px;margin:0}.close{border:0;background:#eef2f0;border-radius:10px;width:38px;height:38px;cursor:pointer}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid .full{grid-column:1/-1}.help{font-size:12px;color:var(--muted);line-height:1.45}
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.local-note{background:#eff8f4;border:1px solid #cfe8dd;border-radius:12px;padding:11px 12px;font-size:12px;color:#356452}
+.muted{color:var(--muted)}.good{color:var(--accent)}.bad{color:var(--danger)}
+
+body.dark{
+  --bg:#0f1513; --panel:#151d1a; --panel2:#1b2420; --text:#e7efeb; --muted:#9dafaa;
+  --border:#293530; --accent:#4fb388; --accent2:#1f4b3a; --danger:#f07a83;
+  --warning:#e6b35d; --shadow:0 10px 30px rgba(0,0,0,.28);
+}
+body.dark .tabs{background:#17201d}
+body.dark .tab{color:#a8bbb4}
+body.dark .tab.active{background:var(--panel);color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.25)}
+body.dark .notice{background:#31270f;color:#f3d390;border-color:#5f4a17}
+body.dark .chip,
+body.dark select,
+body.dark input,
+body.dark .modal,
+body.dark .table-head,
+body.dark th{background:var(--panel);color:var(--text)}
+body.dark .close{background:#23302b;color:var(--text)}
+body.dark .local-note{background:#183026;border-color:#2f5e4a;color:#cfe9de}
+body.dark .isolated{background:#2a2239;color:#d7c7ff}
+body.dark table td, body.dark table th{border-bottom-color:#24302b}
+body.dark .progress{background:#26332e}
+body.dark [style*="border-bottom:1px solid #edf1ef"]{border-bottom-color:#24302b!important}
+body.dark .progress{background:#26332e}
+body.dark .btn.primary{color:white}
+body.dark .empty{color:var(--muted)}
+
+textarea{font:inherit;border:1px solid var(--border);border-radius:10px;background:white;padding:10px;color:var(--text);min-height:110px;resize:vertical;width:100%}
+body.dark textarea{background:var(--panel);color:var(--text);border-color:var(--border)}
+.gift-tools{display:flex;gap:10px;align-items:end;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.gift-tools .left{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.gift-pay-btn,.gift-person-btn,.gift-head-btn{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;border-radius:9px;transition:.15s ease}
+.gift-pay-btn{width:100%;min-width:96px;padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums}
+.gift-pay-btn:hover,.gift-person-btn:hover,.gift-head-btn:hover{background:var(--panel2)}
+.gift-pay-btn.paid{background:#dff4e9;color:#116546;font-weight:800;box-shadow:inset 0 0 0 1px #b7e4ce}
+body.dark .gift-pay-btn.paid{background:#16392b;color:#89e2b9;box-shadow:inset 0 0 0 1px #2d7254}
+.gift-pay-btn .check{margin-left:6px;font-weight:900}
+.gift-person-btn{padding:7px 9px;font-weight:800;text-align:left;white-space:nowrap}
+.gift-person-btn.all-paid{background:#dff4e9;color:#116546}
+body.dark .gift-person-btn.all-paid{background:#16392b;color:#89e2b9}
+.gift-head-btn{padding:6px 7px;font-size:11px;text-transform:uppercase;letter-spacing:.35px;font-weight:800;white-space:nowrap}
+.gift-instruction{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.45}
+.gift-progress-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #edf1ef}
+.gift-progress-line .who{min-width:80px;font-weight:750}.gift-progress-line .bar{flex:1}.gift-progress-line .amount{min-width:105px;text-align:right;font-weight:750}
+
+
+.icon-btn{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:9px;padding:6px 9px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap}
+.icon-btn:hover{background:var(--panel2);color:var(--text)}
+.icon-btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--border))}
+.icon-btn.danger:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}
+.admin-section{padding:14px 0;border-top:1px solid var(--border)}.admin-section:first-of-type{border-top:0;padding-top:0}
+.admin-section h3{margin:0 0 5px;font-size:15px}.admin-section p{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.45}
+.admin-table{max-height:330px;overflow:auto;border:1px solid var(--border);border-radius:12px}
+.admin-table table{font-size:12px}.fx-input{width:120px;min-height:34px;padding:6px 8px;text-align:right}
+.admin-inline{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px}.admin-inline .field{min-width:140px}
+.deleted-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.deleted-item:last-child{border-bottom:0}.deleted-item .meta{min-width:0}.deleted-item b{display:block;font-size:13px}.deleted-item small{display:block;color:var(--muted);margin-top:3px;white-space:normal}
+.action-col{text-align:right!important;width:1%;white-space:nowrap}
+body.dark .icon-btn{background:transparent}
+.action-buttons{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.pill.edited{background:#e9f0ff;color:#3e5d9a}
+body.dark .pill.edited{background:#233149;color:#aac4ff}
+
+.batch-option{grid-column:1/-1;display:none;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid var(--border);border-radius:12px;background:var(--panel2)}
+.batch-option.show{display:flex}.batch-option .batch-copy{min-width:0}.batch-option b{display:block;font-size:13px}.batch-option small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}.batch-check{display:flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:750}.batch-check input{width:18px;height:18px;min-height:auto;accent-color:var(--accent)}
+.batch-status{font-size:12px;color:var(--accent);font-weight:750;margin-left:auto}.batch-status:empty{display:none}
+.chart-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.chart-card-head .copy{min-width:0;flex:1}
+.check-toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:12px;font-weight:700;user-select:none}
+.check-toggle input[type="checkbox"]{width:17px;height:17px;min-height:0;padding:0;margin:0;accent-color:var(--accent);cursor:pointer}
+.check-toggle.compact{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel2)}
+.saving-classification{align-items:flex-start;gap:7px}
+.saving-classification .help{margin:0;font-weight:400}
+.saving-table-head{align-items:end;flex-wrap:wrap}
+.saving-table-head .saving-head-copy{min-width:0}
+.saving-table-head .saving-head-copy span{display:block;margin-top:4px}
+.saving-search{width:min(320px,100%);min-width:220px}
+.sort-th{padding:0}
+.sort-btn{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;border:0;background:transparent;color:inherit;padding:11px 12px;cursor:pointer;text-transform:uppercase;letter-spacing:.35px;font-size:11px;font-weight:800;text-align:left;white-space:nowrap}
+.sort-btn:hover{background:var(--panel2);color:var(--text)}
+.sort-btn.active{color:var(--accent)}
+.sort-arrow{display:inline-block;min-width:12px;text-align:center;font-size:12px;opacity:.45}
+.sort-btn.active .sort-arrow{opacity:1}
+body.dark .sort-btn:hover{background:var(--panel2)}
+@media(max-width:600px){.saving-search{width:100%;min-width:100%}.saving-table-head{align-items:stretch}}
+
+
+.amount-calc-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
+.amount-calc-status{font-size:11px;margin-top:4px;min-height:15px;color:var(--accent);font-weight:700}
+.amount-calc-status.error{color:var(--danger)}
+
+
+.stack-col{display:grid;gap:14px;min-width:0;align-content:start}
+.mini-tabs{display:inline-flex;gap:4px;padding:4px;background:var(--panel2);border:1px solid var(--border);border-radius:11px;flex-wrap:wrap}
+.mini-tab{border:0;background:transparent;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:750;font-size:12px}
+.mini-tab.active{background:var(--panel);color:var(--accent);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.payment-label{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.payment-logo{width:20px;height:20px;object-fit:contain;flex:0 0 20px;border-radius:5px}
+.payment-logo.santander{background:#ec0000}
+.hb20-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.admin-special-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.admin-special-head p{flex:1 1 480px;margin-bottom:0!important}
+@media(max-width:600px){.mini-tabs{width:100%;display:flex}.mini-tab{flex:1}.hb20-head,.admin-special-head{align-items:stretch}}
+
+
+/* Supabase / cloud sync */
+.cloud-auth{position:fixed;inset:0;z-index:100;background:rgba(9,14,12,.82);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px}
+.cloud-auth.hidden{display:none}
+.cloud-auth-card{width:min(440px,100%);background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.38)}
+.cloud-auth-card h2{margin:0 0 6px;font-size:23px}.cloud-auth-card>p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.45}
+.cloud-auth-card .field{width:100%;margin-bottom:11px}.cloud-auth-card input{width:100%}
+.cloud-login-actions{display:flex;align-items:center;gap:10px;margin-top:15px}.cloud-login-actions .btn{flex:1}
+.cloud-auth-error{min-height:18px;margin-top:10px;color:var(--danger);font-size:12px;line-height:1.4}
+.cloud-security-note{margin-top:14px;padding-top:13px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.45}
+.sync-pill{display:inline-flex;align-items:center;gap:7px;padding:9px 11px;border:1px solid var(--border);border-radius:12px;background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap}
+.sync-dot{width:8px;height:8px;border-radius:999px;background:#a2aaa6;box-shadow:0 0 0 3px color-mix(in srgb,#a2aaa6 18%,transparent)}
+.sync-pill.syncing .sync-dot{background:#d3a13e;box-shadow:0 0 0 3px color-mix(in srgb,#d3a13e 18%,transparent)}
+.sync-pill.ok .sync-dot{background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.sync-pill.error .sync-dot{background:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 18%,transparent)}
+.cloud-small-btn{padding:9px 11px}
+.cloud-migration-banner{display:none;margin:0 0 16px;padding:13px 14px;border:1px solid #e1bd68;border-radius:12px;background:#fff7df;color:#6c5017;font-size:12px;line-height:1.45}
+.cloud-migration-banner.show{display:block}
+body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:#604f1f}
+@media(max-width:720px){.sync-pill{order:10;width:100%;justify-content:center}.cloud-small-btn{flex:1}.cloud-login-actions{flex-direction:column}.cloud-login-actions .btn{width:100%}}
+
+@media(max-width:980px){.grid-kpi{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.topbar{flex-direction:column}.actions{width:100%}}
+@media(max-width:600px){.app{padding:14px}.grid-kpi{grid-template-columns:1fr 1fr}.kpi .value{font-size:20px}.form-grid{grid-template-columns:1fr}.chart-wrap{height:260px}.field{min-width:100%;width:100%}}
+</style>
+</head>
+<body>
+<div class="cloud-auth" id="cloudAuth">
+  <div class="cloud-auth-card">
+    <h2>Entrar a Mis Gastos</h2>
+    <p>Iniciá sesión con el usuario que creaste en Supabase. Tus datos financieros quedan asociados a ese usuario.</p>
+    <form id="cloudLoginForm">
+      <div class="field"><label>Email</label><input type="email" id="cloudEmail" autocomplete="username" required placeholder="tu@email.com"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="cloudPassword" autocomplete="current-password" required></div>
+      <div class="cloud-login-actions"><button class="btn primary" id="cloudLoginBtn" type="submit">Iniciar sesión</button></div>
+      <div class="cloud-auth-error" id="cloudAuthError"></div>
+    </form>
+    <div class="cloud-security-note">La contraseña no se guarda en el dashboard. La sesión la administra Supabase Auth.</div>
+  </div>
+</div>
+<input type="file" id="importStateInput" accept="application/json,.json" hidden>
+<div class="app">
+  <div class="topbar">
+    <div class="title">
+      <h1>Mis Gastos</h1>
+      <p>Ingresos, gastos, ahorro y cuotas en un solo lugar.</p>
+    </div>
+    <div class="actions">
+      <span class="sync-pill" id="syncPill" title="Estado de sincronización"><span class="sync-dot"></span><span id="syncStatus">Sin conectar</span></span>
+      <button class="btn cloud-small-btn" id="syncNowBtn" type="button">↻ Sincronizar</button>
+      <button class="btn cloud-small-btn" id="importStateBtn" type="button">Importar respaldo</button>
+      <button class="btn cloud-small-btn" id="logoutBtn" type="button">Salir</button>
+      <button class="btn" id="themeBtn">🌙 Modo oscuro</button>
+      <button class="btn" id="adminBtn">⚙ Administrar</button>
+      <button class="btn" id="exportBtn">Exportar cargas locales</button>
+      <button class="btn primary" id="addBtn">+ Agregar gasto</button>
+    </div>
+  </div>
+
+  <div class="cloud-migration-banner" id="cloudMigrationBanner">La nube todavía no tiene un estado guardado. Si tus datos actuales están en otra versión/navegador, exportá allí “cargas locales” e importá el JSON acá antes de seguir cargando movimientos.</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="resumen">Resumen</button>
+    <button class="tab" data-tab="fijos">Gastos fijos</button>
+    <button class="tab" data-tab="variables">Gastos variables</button>
+    <button class="tab" data-tab="ahorros">Ahorros</button>
+    <button class="tab" data-tab="regalos">Cuotas de regalos</button>
+  </div>
+
+  <section class="page active" id="resumen">
+    <div class="notice"><b>Calidad de datos:</b><span>Los gastos variables de diciembre 2025 y enero 2026 son estimaciones del Excel. Los gráficos los identifican como tales y los gastos fijos usan la tabla mensual original, evitando el desfasaje detectado en RESUMEN.</span></div>
+    <div class="status-row" id="statusRow"></div>
+    <div class="grid-kpi" id="summaryKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Evolución mensual</h3><div class="desc">Sueldo, gastos fijos, variables y ahorro neto.</div><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
+      <div class="card"><h3>Gastos vs sueldo</h3><div class="desc">Meses con sueldo y gastos disponibles.</div><div class="chart-wrap"><canvas id="ratioChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><h3>Composición de gastos</h3><div class="desc">Fijos + variables para los meses con información disponible.</div><div class="chart-wrap sm"><canvas id="mixChart"></canvas></div></div>
+    <div class="table-card"><div class="table-head"><h3>Resumen mensual</h3><span>Datos consolidados del Excel</span></div><div class="table-scroll"><table id="summaryTable"></table></div></div>
+  </section>
+
+  <section class="page" id="fijos">
+    <div class="controls">
+      <div class="field"><label>Mes</label><select id="fixedMonth"></select></div>
+    </div>
+    <div class="grid-kpi" id="fixedKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Evolución de gastos fijos</h3><div class="desc">Histórico real + compromisos de cuotas de la tabla maestra.</div><div class="chart-wrap"><canvas id="fixedEvolution"></canvas></div></div>
+      <div class="card"><h3>Composición del mes</h3><div class="desc">Suscripciones, cuotas, seguro y patente cuando corresponde.</div><div class="chart-wrap"><canvas id="fixedCategory"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="stack-col">
+        <div class="card"><h3>Por medio de pago</h3><div class="desc">Solo gastos de la tabla maestra de tarjeta/transferencias.</div><div class="chart-wrap sm"><canvas id="fixedPayment"></canvas></div></div>
+        <div class="card">
+          <div class="hb20-head">
+            <div><h3>Gastos fijos HB20</h3><div class="desc" style="margin-bottom:0">Evolución mensual de seguro y patente.</div></div>
+            <div class="mini-tabs" id="hb20FixedTabs" aria-label="Elegir gasto fijo HB20">
+              <button type="button" class="mini-tab" data-hb20-tab="Seguro">Seguro</button>
+              <button type="button" class="mini-tab" data-hb20-tab="Patente">Patente</button>
+            </div>
+          </div>
+          <div class="chart-wrap sm"><canvas id="hb20FixedChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card"><h3>Cuotas activas</h3><div class="desc">Avance de las compras financiadas del mes elegido.</div><div id="installmentsList"></div></div>
+    </div>
+    <div class="table-card"><div class="table-head"><h3>Detalle del mes</h3><span id="fixedTableLabel"></span></div><div class="table-scroll"><table id="fixedTable"></table></div></div>
+  </section>
+
+  <section class="page" id="variables">
+    <div class="controls">
+      <div class="field"><label>Mes</label><select id="varMonth"></select></div>
+      <div class="field"><label>Categoría</label><select id="varCategory"><option value="">Todas</option></select></div>
+      <div class="field"><label>Medio de pago</label><select id="varPayment"><option value="">Todos</option></select></div>
+      <div class="field"><label>Buscar</label><input id="varSearch" placeholder="Ej. Rappi, nafta..."></div>
+    </div>
+    <div class="grid-kpi" id="varKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Gasto por categoría</h3><div class="desc">Importes convertidos a ARS usando la cotización mensual del Excel.</div><div class="chart-wrap"><canvas id="varCategoryChart"></canvas></div></div>
+      <div class="card"><h3>Gasto diario</h3><div class="desc">Ritmo de gasto dentro del mes seleccionado.</div><div class="chart-wrap"><canvas id="varDailyChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><h3>Medios de pago</h3><div class="desc">Distribución del gasto variable filtrado.</div><div class="chart-wrap sm"><canvas id="varPaymentChart"></canvas></div></div>
+    <div class="table-card"><div class="table-head"><h3>Movimientos</h3><span id="varCount"></span></div><div class="table-scroll"><table id="varTable"></table></div></div>
+  </section>
+
+  <section class="page" id="ahorros">
+    <div class="actions" style="justify-content:flex-end;margin-bottom:14px">
+      <button class="btn primary" id="addSavingBtn">+ Agregar movimiento de ahorro</button>
+    </div>
+    <div class="grid-kpi" id="savingKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Ahorro neto por mes</h3><div class="desc">Aportes y retiros convertidos a ARS con la cotización mensual.</div><div class="chart-wrap"><canvas id="savingMonthly"></canvas></div></div>
+      <div class="card"><h3>Motivos</h3><div class="desc">Flujo neto acumulado por motivo.</div><div class="chart-wrap"><canvas id="savingReason"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="chart-card-head">
+        <div class="copy"><h3>Nominales actuales por activo</h3><div class="desc" style="margin-bottom:0">Tenencia neta reconstruida a partir de los movimientos. Al pasar por una barra también ves el monto neto histórico en ARS; todavía no es valuación de mercado.</div></div>
+        <label class="check-toggle compact" title="Ocultar o mostrar fondos y letras solo en este gráfico"><input type="checkbox" id="showFundLetters" checked><span>Mostrar fondos/letras</span></label>
+      </div>
+      <div class="chart-wrap sm" id="savingAssetsWrap"><canvas id="savingAssets"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div class="table-head saving-table-head">
+        <div class="saving-head-copy"><h3>Movimientos de ahorro</h3><span id="savingTableCount">Incluye aportes, retiros, movimientos de cartera y viaje</span></div>
+        <div class="field saving-search"><label>Buscar ticker / activo</label><input id="savingSearch" placeholder="Ej. YPF, PAMP, ESTRA1A..." autocomplete="off"></div>
+      </div>
+      <div class="table-scroll"><table id="savingTable"></table></div>
+    </div>
+  </section>
+
+  <section class="page" id="regalos">
+    <div class="isolated">Sección aislada · no impacta ningún otro dato</div>
+    <div class="gift-tools">
+      <div class="left">
+        <div class="field"><label>Regalo</label><select id="giftSelect"></select></div>
+      </div>
+      <button class="btn primary" id="addGiftBtn">+ Nuevo regalo</button>
+    </div>
+    <p class="gift-instruction">Tocá una cuota para marcarla como pagada. Tocá el nombre para marcar/desmarcar todas las cuotas de esa persona, o el encabezado de una cuota para hacerlo con todo el grupo. Se guarda automáticamente en este navegador.</p>
+    <div class="grid-kpi" id="giftKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Estado por cuota</h3><div class="desc">Total esperado vs. monto ya pagado por cada cuota.</div><div class="chart-wrap"><canvas id="giftChart"></canvas></div></div>
+      <div class="card"><h3>Resumen por integrante</h3><div class="desc">Progreso de pagos de cada persona.</div><div id="giftPeople"></div></div>
+    </div>
+    <div class="table-card"><div class="table-head"><h3 id="giftTitle"></h3><span id="giftTableStatus">Seguimiento del grupo</span></div><div class="table-scroll"><table id="giftTable"></table></div></div>
+  </section>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="expenseModalTitle">Agregar gasto</h2><button class="close" id="closeModal">×</button></div>
+    <div class="local-note">Esta versión guarda automáticamente las nuevas cargas en <b>este navegador</b>. No modifica el Excel original ni sincroniza entre dispositivos.</div>
+    <form id="expenseForm">
+      <div class="form-grid" style="margin-top:14px">
+        <div class="field"><label>Tipo</label><select id="fType"><option value="variable">Gasto variable</option><option value="fixed">Gasto fijo</option></select></div>
+        <div class="field"><label>Fecha</label><input type="date" id="fDate" required></div>
+        <div class="field full"><label>Descripción</label><input id="fName" required placeholder="Ej. Supermercado, Netflix..."></div>
+        <div class="field"><label>Moneda</label><select id="fCurrency"><option>ARS</option><option>USD</option></select></div>
+        <div class="field"><label>Monto</label><input type="text" inputmode="decimal" autocomplete="off" id="fAmount" required placeholder="Ej. 12000+4500-800"><div class="amount-calc-hint">Podés usar + − × ÷ con <b>+ - * /</b> y paréntesis. Enter calcula.</div><div class="amount-calc-status" id="fAmountCalcStatus"></div></div>
+        <div class="field"><label>Medio de pago</label><select id="fPayment"></select></div>
+        <div class="field"><label>Categoría</label><input id="fCategory" list="categoryList" placeholder="Ej. Supermercado"></div>
+        <datalist id="categoryList"></datalist>
+        <div class="batch-option" id="batchExpenseBox">
+          <div class="batch-copy"><b>Carga múltiple</b><small>Al guardar, mantiene fecha, moneda y medio de pago; limpia descripción, monto y categoría para cargar el siguiente.</small></div>
+          <label class="batch-check"><input type="checkbox" id="fBatchMode"> Activar</label>
+        </div>
+        <div class="field fixed-only" style="display:none"><label>Cantidad de cuotas</label><input type="number" min="1" max="60" id="fInstallments" value="1"></div>
+        <div class="field fixed-only" style="display:none"><label>Clase</label><select id="fFixedClass"><option value="Cuotas">Cuotas</option><option value="Suscripción">Suscripción</option></select></div>
+      </div>
+      <p class="help">Las cargas locales se suman a los gráficos del dashboard. Para cargar varios gastos del mismo período, activá Carga múltiple. Podés exportarlas a JSON para tener una copia.</p>
+      <div class="form-actions"><span class="batch-status" id="batchExpenseStatus"></span><button type="button" class="btn" id="cancelModal">Cancelar</button><button class="btn primary" id="expenseSubmitBtn" type="submit">Guardar gasto</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="savingModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="savingModalTitle">Agregar movimiento de ahorro</h2><button class="close" id="closeSavingModal">×</button></div>
+    <div class="local-note">Podés <b>sumar</b> o <b>restar</b> ahorro. La carga se guarda en este navegador y actualiza los KPIs, gráficos y tabla de Ahorros.</div>
+    <form id="savingForm">
+      <div class="form-grid" style="margin-top:14px">
+        <div class="field"><label>Movimiento</label><select id="sDirection"><option value="add">Sumar ahorro</option><option value="subtract">Restar ahorro</option></select></div>
+        <div class="field"><label>Fecha</label><input type="date" id="sDate" required></div>
+        <div class="field full"><label>Activo / cuenta</label><input id="sAsset" required placeholder="Ej. Balanz, Dólares, Cuenta remunerada..."></div>
+        <div class="field"><label>Moneda</label><select id="sCurrency"><option>ARS</option><option>USD</option></select></div>
+        <div class="field"><label>Monto</label><input type="number" step="0.01" min="0.01" id="sAmount" required></div>
+        <div class="field full"><label>Motivo</label><input id="sReason" placeholder="Ej. Ahorro mensual, viaje, retiro, inversión..."></div>
+        <div class="field"><label>Nominales (opcional)</label><input type="number" step="0.0001" id="sNominal" placeholder="0"></div>
+        <div class="field full saving-classification">
+          <label class="check-toggle"><input type="checkbox" id="sFundLetter"><span>Es fondo o letra</span></label>
+          <p class="help">PER2A, BCAHA, BCMMA, S28N5 y ESTRA1A se reconocen automáticamente.</p>
+        </div>
+      </div>
+      <p class="help">Para restar, ingresá el monto en positivo y elegí “Restar ahorro”; el dashboard aplica el signo automáticamente.</p>
+      <div class="form-actions"><button type="button" class="btn" id="cancelSavingModal">Cancelar</button><button class="btn primary" id="savingSubmitBtn" type="submit">Guardar movimiento</button></div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="giftModal">
+  <div class="modal">
+    <div class="modal-head"><h2>Agregar nuevo regalo</h2><button class="close" id="closeGiftModal">×</button></div>
+    <div class="local-note">El regalo y su estado de pagos quedan guardados en <b>este navegador</b> y permanecen totalmente separados de tus gastos personales.</div>
+    <form id="giftForm">
+      <div class="form-grid" style="margin-top:14px">
+        <div class="field"><label>Nombre del regalo</label><input id="gName" required placeholder="Ej. Regalo Juan"></div>
+        <div class="field"><label>Tarjeta / referencia (opcional)</label><input id="gReference" placeholder="Ej. Visa Santander"></div>
+        <div class="field"><label>Primera cuota</label><input type="month" id="gStartMonth" required></div>
+        <div class="field"><label>Cantidad de cuotas</label><input type="number" min="1" max="36" value="6" id="gInstallments" required></div>
+        <div class="field full"><label>Monto de cada cuota por persona</label><input type="number" step="0.01" min="0.01" id="gAmount" required placeholder="3330"></div>
+        <div class="field full"><label>Participantes</label><textarea id="gPeople" required placeholder="Uno por línea o separados por coma&#10;Rena&#10;Rafa&#10;Mati"></textarea></div>
+      </div>
+      <p class="help">La tabla se genera automáticamente con una columna por cuota. Después podés marcar pagos tocando cada celda.</p>
+      <div class="form-actions"><button type="button" class="btn" id="cancelGiftModal">Cancelar</button><button class="btn primary" type="submit">Crear regalo</button></div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="adminModal">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-head"><h2>Administrar datos</h2><button class="close" id="closeAdminModal">×</button></div>
+    <div class="local-note">Los cambios de esta sección quedan guardados en <b>este navegador</b>. Los datos originales del Excel no se sobrescriben: cuando borrás algo del Excel, el dashboard lo oculta y después podés restaurarlo.</div>
+
+    <div class="admin-section" style="margin-top:14px">
+      <h3>Tipo de cambio mensual</h3>
+      <p>Modificá el TC ARS/USD usado para convertir movimientos en dólares. El cambio se aplica automáticamente a gastos, ahorros y gastos fijos en USD de ese mes.</p>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>TC original</th><th>TC usado</th><th class="action-col">Acción</th></tr></thead><tbody id="fxAdminBody"></tbody></table></div>
+      <div class="admin-inline">
+        <div class="field"><label>Agregar otro mes</label><input type="month" id="fxNewMonth"></div>
+        <div class="field"><label>TC ARS/USD</label><input type="number" min="0.01" step="0.01" id="fxNewRate" placeholder="1550"></div>
+        <button type="button" class="btn" id="addFxMonthBtn">Agregar / actualizar</button>
+        <button type="button" class="btn primary" id="saveFxBtn">Guardar tipos de cambio</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Sueldos mensuales</h3>
+      <p>Agregá o editá el sueldo de cada mes. Los cambios actualizan automáticamente el Resumen, la evolución mensual, los porcentajes de gastos sobre sueldo y el disponible.</p>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>Sueldo original</th><th>Sueldo usado</th><th class="action-col">Acción</th></tr></thead><tbody id="salaryAdminBody"></tbody></table></div>
+      <div class="admin-inline">
+        <div class="field"><label>Mes</label><input type="month" id="salaryNewMonth"></div>
+        <div class="field"><label>Sueldo ARS</label><input type="number" min="0.01" step="0.01" id="salaryNewAmount" placeholder="1500000"></div>
+        <button type="button" class="btn" id="addSalaryMonthBtn">Agregar / actualizar</button>
+        <button type="button" class="btn primary" id="saveSalaryBtn">Guardar sueldos</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-special-head">
+        <div>
+          <h3>Seguro y patente</h3>
+          <p>Administrá cada concepto por separado. Los valores del Excel aparecen como base; podés editarlos, agregar meses nuevos o eliminarlos/restaurarlos sin modificar el archivo original.</p>
+        </div>
+        <div class="mini-tabs" id="fixedSpecialAdminTabs" aria-label="Elegir Seguro o Patente">
+          <button type="button" class="mini-tab" data-special-admin-tab="Seguro">Seguro</button>
+          <button type="button" class="mini-tab" data-special-admin-tab="Patente">Patente</button>
+        </div>
+      </div>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>Original</th><th>Importe usado</th><th>Origen</th><th class="action-col">Acciones</th></tr></thead><tbody id="fixedSpecialAdminBody"></tbody></table></div>
+      <div class="admin-inline">
+        <div class="field"><label id="fixedSpecialMonthLabel">Mes</label><input type="month" id="fixedSpecialMonth"></div>
+        <div class="field"><label>Importe ARS</label><input type="number" min="0.01" step="0.01" id="fixedSpecialAmount" placeholder="80000"></div>
+        <button type="button" class="btn primary" id="addFixedSpecialBtn">Agregar / actualizar</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Categorías de gastos variables</h3>
+      <p>Agregá, renombrá o quitá categorías disponibles para nuevas cargas. Si renombrás una categoría, los gastos históricos se muestran automáticamente con el nombre nuevo. Si la eliminás, los gastos ya cargados conservan esa categoría.</p>
+      <div class="admin-table"><table><thead><tr><th>Categoría</th><th>Movimientos</th><th class="action-col">Acciones</th></tr></thead><tbody id="categoryAdminBody"></tbody></table></div>
+      <div class="admin-inline">
+        <div class="field" style="min-width:260px"><label>Nueva categoría</label><input id="newVarCategory" placeholder="Ej. Mascotas"></div>
+        <button type="button" class="btn primary" id="addVarCategoryBtn">+ Agregar categoría</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Datos eliminados</h3>
+      <p>Los movimientos borrados desde las tablas aparecen acá para que puedas recuperarlos si te equivocaste.</p>
+      <div id="deletedAdminList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = {"meta": {"source": "Gastos(1).xlsx", "generated": "2026-09-23", "latestFx": 1550.0, "latestFxMonth": "2026-09", "completeness": {"salary": "2026-08", "fixed": "2026-09", "variable": "2026-03", "savings": "2026-07"}}, "overview": [{"month": "2025-08", "salary": 998452.0, "fixed": 143664.86, "variable": null, "variableEstimated": false, "savings": 394809.41, "fx": 1361.0}, {"month": "2025-09", "salary": 1013095.0, "fixed": 359862.36, "variable": null, "variableEstimated": false, "savings": 155271.13999999998, "fx": 1400.0}, {"month": "2025-10", "salary": 1022722.0, "fixed": 347730.23000000004, "variable": 589361.93, "variableEstimated": false, "savings": 29985.84, "fx": 1475.0}, {"month": "2025-11", "salary": 1032106.0, "fixed": 322060.78, "variable": 645911.66, "variableEstimated": false, "savings": -224555.65, "fx": 1480.0}, {"month": "2025-12", "salary": 1091294.26, "fixed": 326464.62, "variable": 682030.2275, "variableEstimated": true, "savings": 651671.49, "fx": 1420.0}, {"month": "2026-01", "salary": 1091291.21, "fixed": 210384.47, "variable": 682030.2275, "variableEstimated": true, "savings": 53250.0, "fx": 1465.0}, {"month": "2026-02", "salary": 1103252.0, "fixed": 273567.45499999996, "variable": 709349.24, "variableEstimated": false, "savings": 2572344.2, "fx": 1420.0}, {"month": "2026-03", "salary": 1191885.0, "fixed": 273217.91500000004, "variable": 783498.08, "variableEstimated": false, "savings": -2414.6100000000006, "fx": 1400.0}, {"month": "2026-04", "salary": 1129447.0, "fixed": 316436.045, "variable": null, "variableEstimated": false, "savings": 127258.76999999999, "fx": 1415.0}, {"month": "2026-05", "salary": 1145614.0, "fixed": 322234.335, "variable": null, "variableEstimated": false, "savings": 77003.93000000001, "fx": 1431.0}, {"month": "2026-06", "salary": 1750974.0, "fixed": 311292.59500000003, "variable": null, "variableEstimated": false, "savings": -71682.0, "fx": 1500.0}, {"month": "2026-07", "salary": 1161781.0, "fixed": 327712.142, "variable": null, "variableEstimated": false, "savings": -4002982.84, "fx": 1520.0}, {"month": "2026-08", "salary": 1459430.0, "fixed": 344202.387, "variable": null, "variableEstimated": false, "savings": null, "fx": 1530.0}, {"month": "2026-09", "salary": null, "fixed": 341837.8575555556, "variable": null, "variableEstimated": false, "savings": null, "fx": 1550.0}], "variableTransactions": [{"date": "2026-02-01", "name": "Hytale", "currency": "USD", "payment": "VISA - Santander", "amount": 11.73, "category": "Juegos"}, {"date": "2026-02-02", "name": "Rappi", "currency": "ARS", "payment": "VISA - ICBC", "amount": 11542, "category": "Delivery"}, {"date": "2026-02-03", "name": "Amateur", "currency": "ARS", "payment": "VISA - ICBC", "amount": 10500, "category": "Comida y bebidas"}, {"date": "2026-02-04", "name": "Helado", "currency": "ARS", "payment": "Transferencia", "amount": 4500, "category": "Comida y bebidas"}, {"date": "2026-02-05", "name": "Asado con Helicoptero", "currency": "ARS", "payment": "VISA - ICBC", "amount": 38400, "category": "Comidas Compartidas"}, {"date": "2026-02-05", "name": "Rappi", "currency": "ARS", "payment": "VISA - ICBC", "amount": 16899, "category": "Delivery"}, {"date": "2026-02-06", "name": "Farmacity", "currency": "ARS", "payment": "VISA - ICBC", "amount": 12183.6, "category": "Farmacia"}, {"date": "2026-02-07", "name": "Cena con mati y rafa", "currency": "ARS", "payment": "VISA - ICBC", "amount": 27450, "category": "Restaurante/Bares"}, {"date": "2026-02-07", "name": "Helado", "currency": "ARS", "payment": "VISA - ICBC", "amount": 9000, "category": "Comida y bebidas"}, {"date": "2026-02-08", "name": "Rosas", "currency": "ARS", "payment": "Transferencia", "amount": 40000, "category": "Regalos / Invitaciones"}, {"date": "2026-02-10", "name": "Amateur", "currency": "ARS", "payment": "VISA - Santander", "amount": 10200, "category": "Comida y bebidas"}, {"date": "2026-02-11", "name": "Avast", "currency": "ARS", "payment": "Lemon", "amount": 3892, "category": "Servicios"}, {"date": "2026-02-11", "name": "Hielo y chicles", "currency": "ARS", "payment": "VISA - Santander", "amount": 7717, "category": "Comida y bebidas"}, {"date": "2026-02-12", "name": "Rappi", "currency": "ARS", "payment": "VISA - ICBC", "amount": 12057, "category": "Delivery"}, {"date": "2026-02-14", "name": "Uber", "currency": "ARS", "payment": "VISA - Santander", "amount": 13326, "category": "Didi/Uber/Cabify"}, {"date": "2026-02-14", "name": "Birras", "currency": "ARS", "payment": "VISA - ICBC", "amount": 14400, "category": "Alcohol, fiestas y +"}, {"date": "2026-02-15", "name": "Sanguche en Axion", "currency": "ARS", "payment": "Master - MP", "amount": 19300, "category": "Comida y bebidas"}, {"date": "2026-02-15", "name": "Medialunas en YPF", "currency": "ARS", "payment": "VISA - Santander", "amount": 4500, "category": "Comida y bebidas"}, {"date": "2026-02-17", "name": "Airbnb Tandil", "currency": "USD", "payment": "VISA - Santander", "amount": 113.975, "category": "Alojamientos"}, {"date": "2026-02-20", "name": "Mamuschka", "currency": "ARS", "payment": "VISA - Santander", "amount": 38184, "category": "Regalos / Invitaciones"}, {"date": "2026-02-22", "name": "Jugo", "currency": "ARS", "payment": "VISA - Santander", "amount": 3300, "category": "Comida y bebidas"}, {"date": "2026-02-23", "name": "Huevos recibida valen", "currency": "ARS", "payment": "Transferencia", "amount": 3500, "category": "Otros / No sé"}, {"date": "2026-02-23", "name": "Almuerzo El Roncal", "currency": "ARS", "payment": "Transferencia", "amount": 15000, "category": "Comida y bebidas"}, {"date": "2026-02-23", "name": "Subte", "currency": "ARS", "payment": "VISA - Santander", "amount": 1320, "category": "Transporte público"}, {"date": "2026-02-23", "name": "Nafta", "currency": "ARS", "payment": "VISA - Santander", "amount": 49354.96, "category": "Nafta"}, {"date": "2026-02-23", "name": "Farmaweb (?", "currency": "ARS", "payment": "VISA - Santander", "amount": 6800, "category": "Otros / No sé"}, {"date": "2026-02-24", "name": "Supermercado", "currency": "ARS", "payment": "VISA - ICBC", "amount": 14138, "category": "Supermercado"}, {"date": "2026-02-24", "name": "Subte", "currency": "ARS", "payment": "VISA - Santander", "amount": 1320, "category": "Transporte público"}, {"date": "2026-02-24", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 10085, "category": "Supermercado"}, {"date": "2026-02-24", "name": "Bar recibida valen", "currency": "ARS", "payment": "Transferencia", "amount": 22320, "category": "Restaurante/Bares"}, {"date": "2026-02-25", "name": "Mi Gusto", "currency": "ARS", "payment": "VISA - ICBC", "amount": 17000, "category": "Delivery"}, {"date": "2026-02-26", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 8944, "category": "Supermercado"}, {"date": "2026-02-27", "name": "Comision paquete ICBC", "currency": "ARS", "payment": "VISA - ICBC", "amount": 6919.83, "category": "Otros / No sé"}, {"date": "2026-02-27", "name": "Asado con uruguayos", "currency": "ARS", "payment": "Transferencia", "amount": 21810, "category": "Comidas Compartidas"}, {"date": "2026-02-28", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 54985.75, "category": "Supermercado"}, {"date": "2026-03-01", "name": "Verduleria", "currency": "ARS", "payment": "Transferencia", "amount": 3850, "category": "Verduleria"}, {"date": "2026-03-01", "name": "Ficha lavarropa", "currency": "ARS", "payment": "Transferencia", "amount": 4000, "category": "Lavarropa"}, {"date": "2026-03-02", "name": "Matera", "currency": "ARS", "payment": "VISA - ICBC", "amount": 16480.3, "category": "Articulos"}, {"date": "2026-03-02", "name": "Regalo Papá", "currency": "ARS", "payment": "Transferencia", "amount": 56333, "category": "Regalos / Invitaciones"}, {"date": "2026-03-02", "name": "Tupper y lava botella", "currency": "ARS", "payment": "VISA - Santander", "amount": 13200, "category": "Articulos"}, {"date": "2026-03-04", "name": "Rabieta", "currency": "ARS", "payment": "VISA - ICBC", "amount": 21000, "category": "Alcohol, fiestas y +"}, {"date": "2026-03-05", "name": "Merpago*srl (?", "currency": "ARS", "payment": "VISA - Santander", "amount": 24000, "category": "Otros / No sé"}, {"date": "2026-03-05", "name": "Subte", "currency": "ARS", "payment": "VISA - Santander", "amount": 1320, "category": "Transporte público"}, {"date": "2026-03-06", "name": "Rappi", "currency": "ARS", "payment": "VISA - Santander", "amount": 7900, "category": "Delivery"}, {"date": "2026-03-06", "name": "ON FIT Matrícula", "currency": "ARS", "payment": "VISA - Santander", "amount": 9900, "category": "Salud"}, {"date": "2026-03-06", "name": "Mc Donalds", "currency": "ARS", "payment": "VISA - Santander", "amount": 14630, "category": "Delivery"}, {"date": "2026-03-07", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 16297, "category": "Supermercado"}, {"date": "2026-03-07", "name": "Flores", "currency": "ARS", "payment": "Transferencia", "amount": 10200, "category": "Alcohol, fiestas y +"}, {"date": "2026-03-08", "name": "Cine", "currency": "ARS", "payment": "VISA - Santander", "amount": 23700, "category": "Entretenimiento"}, {"date": "2026-03-08", "name": "Nafta", "currency": "ARS", "payment": "VISA - Santander", "amount": 62057.78, "category": "Nafta"}, {"date": "2026-03-08", "name": "Kiosco", "currency": "ARS", "payment": "Transferencia", "amount": 2750, "category": "Kiosco"}, {"date": "2026-03-08", "name": "Kiosco", "currency": "ARS", "payment": "Transferencia", "amount": 1980, "category": "Comida y bebidas"}, {"date": "2026-03-08", "name": "Verduleria", "currency": "ARS", "payment": "Transferencia", "amount": 4800, "category": "Verduleria"}, {"date": "2026-03-08", "name": "Supermercado", "currency": "ARS", "payment": "Transferencia", "amount": 2400, "category": "Supermercado"}, {"date": "2026-03-08", "name": "No sé", "currency": "ARS", "payment": "Transferencia", "amount": 4300, "category": "Otros / No sé"}, {"date": "2026-03-08", "name": "Comida con valen y caro", "currency": "ARS", "payment": "Transferencia", "amount": 18000, "category": "Comidas Compartidas"}, {"date": "2026-03-08", "name": "Pizzas", "currency": "ARS", "payment": "VISA - Santander", "amount": 15884, "category": "Delivery"}, {"date": "2026-03-09", "name": "PS Plus", "currency": "USD", "payment": "VISA - Santander", "amount": 64.99, "category": "Servicios"}, {"date": "2026-03-09", "name": "Ficha lavarropa", "currency": "ARS", "payment": "Transferencia", "amount": 10000, "category": "Lavarropa"}, {"date": "2026-03-09", "name": "Verduleria", "currency": "ARS", "payment": "Transferencia", "amount": 3150, "category": "Verduleria"}, {"date": "2026-03-10", "name": "Porción de Pizza cancha", "currency": "ARS", "payment": "Transferencia", "amount": 4000, "category": "Comida y bebidas"}, {"date": "2026-03-10", "name": "Apuesta al CAI", "currency": "ARS", "payment": "Transferencia", "amount": 5000, "category": "Entretenimiento"}, {"date": "2026-03-10", "name": "Comida en cancha", "currency": "ARS", "payment": "Transferencia", "amount": 7000, "category": "Comida y bebidas"}, {"date": "2026-03-10", "name": "Estacionamiento cancha", "currency": "ARS", "payment": "Transferencia", "amount": 11666.67, "category": "Estacionamiento"}, {"date": "2026-03-10", "name": "Comida en cancha", "currency": "ARS", "payment": "Transferencia", "amount": 7333.33, "category": "Comida y bebidas"}, {"date": "2026-03-10", "name": "Kiddo", "currency": "ARS", "payment": "VISA - Santander", "amount": 9500, "category": "Restaurante/Bares"}, {"date": "2026-03-10", "name": "Amateur", "currency": "ARS", "payment": "VISA - Santander", "amount": 6500, "category": "Comida y bebidas"}, {"date": "2026-03-11", "name": "SHEIN", "currency": "ARS", "payment": "Transferencia", "amount": 13770, "category": "Articulos"}, {"date": "2026-03-11", "name": "Empanada", "currency": "ARS", "payment": "Transferencia", "amount": 1000, "category": "Comida y bebidas"}, {"date": "2026-03-11", "name": "Mi Gusto", "currency": "ARS", "payment": "Transferencia", "amount": 14000, "category": "Delivery"}, {"date": "2026-03-11", "name": "Helado", "currency": "ARS", "payment": "VISA - ICBC", "amount": 6300, "category": "Comida y bebidas"}, {"date": "2026-03-13", "name": "Facturas", "currency": "ARS", "payment": "Transferencia", "amount": 7000, "category": "Comida y bebidas"}, {"date": "2026-03-20", "name": "Agua", "currency": "ARS", "payment": "VISA - Santander", "amount": 3000, "category": "Comida y bebidas"}, {"date": "2026-03-24", "name": "Salames y quesos", "currency": "ARS", "payment": "VISA - Santander", "amount": 65830, "category": "Comida y bebidas"}, {"date": "2026-03-24", "name": "Empanada", "currency": "ARS", "payment": "Transferencia", "amount": 18000, "category": "Comida y bebidas"}, {"date": "2026-03-25", "name": "Sanguche Amateur", "currency": "ARS", "payment": "Transferencia", "amount": 6500, "category": "Comida y bebidas"}, {"date": "2026-03-26", "name": "Cruza Polo entrada", "currency": "ARS", "payment": "Master - MP", "amount": 9200, "category": "Alcohol, fiestas y +"}, {"date": "2026-03-26", "name": "Fernet", "currency": "ARS", "payment": "Master - MP", "amount": 11400, "category": "Alcohol, fiestas y +"}, {"date": "2026-03-26", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 9139, "category": "Supermercado"}, {"date": "2026-03-26", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 41915, "category": "Supermercado"}, {"date": "2026-03-28", "name": "Pizzería", "currency": "ARS", "payment": "VISA - Santander", "amount": 16800, "category": "Restaurante/Bares"}, {"date": "2026-03-29", "name": "Hamburguesas", "currency": "ARS", "payment": "Transferencia", "amount": 34600, "category": "Delivery"}, {"date": "2026-03-29", "name": "Helado", "currency": "ARS", "payment": "VISA - Santander", "amount": 6000, "category": "Comida y bebidas"}, {"date": "2026-03-30", "name": "Supermercado", "currency": "ARS", "payment": "VISA - Santander", "amount": 12933.5, "category": "Supermercado"}, {"date": "2026-03-30", "name": "Farmacia", "currency": "ARS", "payment": "VISA - Santander", "amount": 15992.5, "category": "Farmacia"}], "savingsTransactions": [{"date": "2025-03-06", "amount": 200000, "currency": "ARS", "asset": "BCAHA", "nominal": 200000, "reason": "Ahorro personal"}, {"date": "2025-03-06", "amount": 199919.45, "currency": "ARS", "asset": "S28N5", "nominal": 183500, "reason": "Ahorro personal"}, {"date": "2025-08-06", "amount": 200080.55, "currency": "ARS", "asset": "PER2A", "nominal": 200080.55, "reason": "Ahorro personal"}, {"date": "2025-08-29", "amount": 82464.87, "currency": "ARS", "asset": "YPF", "nominal": 2, "reason": "Ahorro personal"}, {"date": "2025-08-29", "amount": 112263.99, "currency": "ARS", "asset": "PAMP", "nominal": 31, "reason": "Ahorro personal"}, {"date": "2025-09-02", "amount": 155271.14, "currency": "ARS", "asset": "BCAHA", "nominal": 155271.14, "reason": "Ahorro personal"}, {"date": "2025-09-18", "amount": -205104.92, "currency": "ARS", "asset": "BCAHA", "nominal": -205104.92, "reason": "Ahorro personal"}, {"date": "2025-09-18", "amount": 179872.08, "currency": "ARS", "asset": "ADBE", "nominal": 14, "reason": "Ahorro personal"}, {"date": "2025-09-18", "amount": 25232.84, "currency": "ARS", "asset": "PAMP", "nominal": 7, "reason": "Ahorro personal"}, {"date": "2025-10-31", "amount": 5204.41, "currency": "ARS", "asset": "PAMP", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2025-10-31", "amount": 118.38, "currency": "ARS", "asset": "COME", "nominal": 2, "reason": "Ahorro personal"}, {"date": "2025-10-31", "amount": 24663.05, "currency": "ARS", "asset": "VIST", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2025-11-11", "amount": -179872.08, "currency": "ARS", "asset": "ADBE", "nominal": -14, "reason": "Ahorro personal"}, {"date": "2025-11-11", "amount": 147834.7, "currency": "ARS", "asset": "GOOGL", "nominal": 20, "reason": "Ahorro personal"}, {"date": "2025-11-12", "amount": 5228.92, "currency": "ARS", "asset": "PAMP", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2025-11-12", "amount": 2172.26, "currency": "ARS", "asset": "COME", "nominal": 28, "reason": "Ahorro personal"}, {"date": "2025-11-28", "amount": 26814.97999999998, "currency": "ARS", "asset": "S28N5", "nominal": 24612.656897565474, "reason": "Amortización"}, {"date": "2025-11-28", "amount": -226734.43, "currency": "ARS", "asset": "S28N5", "nominal": 208112.65689756547, "reason": "Retiro"}, {"date": "2025-12-04", "amount": -147834.7, "currency": "ARS", "asset": "GOOGL", "nominal": 20, "reason": "Retiro"}, {"date": "2025-12-04", "amount": -24663.05, "currency": "ARS", "asset": "VIST", "nominal": 1, "reason": "Retiro"}, {"date": "2025-12-11", "amount": -150166.22, "currency": "ARS", "asset": "BCAHA", "nominal": -150166.22, "reason": "Retiro"}, {"date": "2025-12-11", "amount": 314.03, "currency": "USD", "asset": "ESTRA1A", "nominal": 314.03, "reason": "HB20"}, {"date": "2025-12-11", "amount": 5514.95, "currency": "ARS", "asset": "PAMP", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2025-12-11", "amount": 870.25, "currency": "ARS", "asset": "COME", "nominal": 13, "reason": "Ahorro personal"}, {"date": "2025-12-18", "amount": 135.59, "currency": "USD", "asset": "ESTRA1A", "nominal": 135.59, "reason": "HB20"}, {"date": "2025-12-23", "amount": 329489.86, "currency": "ARS", "asset": "BCAHA", "nominal": 329489.86, "reason": "Pago de cuotas"}, {"date": "2026-01-12", "amount": 53250, "currency": "ARS", "asset": "BCAHA", "nominal": 53250, "reason": "Pago de cuotas"}, {"date": "2026-02-02", "amount": 103.11, "currency": "USD", "asset": "ESTRA1A", "nominal": 103.11, "reason": "HB20"}, {"date": "2026-02-18", "amount": 1608.4, "currency": "USD", "asset": "ESTRA1A", "nominal": 1608.4, "reason": "Ahorro personal"}, {"date": "2026-02-27", "amount": 100, "currency": "USD", "asset": "ESTRA1A", "nominal": 100, "reason": "HB20"}, {"date": "2026-03-06", "amount": -36314.61, "currency": "ARS", "asset": "BCAHA", "nominal": -36314.61, "reason": "Retiro"}, {"date": "2026-03-09", "amount": -7100, "currency": "ARS", "asset": "BCAHA", "nominal": -7100, "reason": "Retiro"}, {"date": "2026-03-13", "amount": 41000, "currency": "ARS", "asset": "BCAHA", "nominal": 41000, "reason": "Pago de cuotas"}, {"date": "2026-04-01", "amount": -36316, "currency": "ARS", "asset": "BCAHA", "nominal": -36316, "reason": "Pago de cuotas"}, {"date": "2026-04-01", "amount": -65, "currency": "USD", "asset": "ESTRA1A", "nominal": -65, "reason": "Retiro"}, {"date": "2026-04-01", "amount": 100.01, "currency": "USD", "asset": "ESTRA1A", "nominal": 100.01, "reason": "HB20"}, {"date": "2026-04-01", "amount": 85000, "currency": "ARS", "asset": "BCAHA", "nominal": 85000, "reason": "Ahorro personal"}, {"date": "2026-04-15", "amount": -40807, "currency": "ARS", "asset": "BCAHA", "nominal": -40807, "reason": "Pago de cuotas"}, {"date": "2026-04-28", "amount": 69842.62, "currency": "ARS", "asset": "SPOT", "nominal": 3, "reason": "Ahorro personal"}, {"date": "2026-05-06", "amount": -71682, "currency": "ARS", "asset": "BCAHA", "nominal": -71682, "reason": "Pago de cuotas"}, {"date": "2026-05-11", "amount": -1827.72, "currency": "ARS", "asset": "COME", "nominal": -43, "reason": "Movimiento de cartera"}, {"date": "2026-05-11", "amount": 9659.93, "currency": "ARS", "asset": "PAMP", "nominal": 2, "reason": "Ahorro personal"}, {"date": "2026-05-11", "amount": -43132.85, "currency": "ARS", "asset": "PAMP", "nominal": -9, "reason": "Movimiento de cartera"}, {"date": "2026-05-11", "amount": 32015.8, "currency": "ARS", "asset": "QCOM", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2026-05-19", "amount": 55476.16, "currency": "ARS", "asset": "SPY", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2026-05-20", "amount": -54576.16, "currency": "ARS", "asset": "SPY", "nominal": -1, "reason": "Movimiento de cartera"}, {"date": "2026-05-20", "amount": 14723.26, "currency": "ARS", "asset": "PAMP", "nominal": 3, "reason": "Ahorro personal"}, {"date": "2026-05-20", "amount": 38017.51, "currency": "ARS", "asset": "RIO", "nominal": 2, "reason": "Ahorro personal"}, {"date": "2026-05-29", "amount": 78050, "currency": "ARS", "asset": "YPF", "nominal": 1, "reason": "Ahorro personal"}, {"date": "2026-05-29", "amount": 20280, "currency": "ARS", "asset": "PAMP", "nominal": 4, "reason": "Ahorro personal"}, {"date": "2026-06-02", "amount": -71682, "currency": "ARS", "asset": "BCAHA", "nominal": -71682, "reason": "Pago de cuotas"}, {"date": "2026-07-07", "amount": -2351.85, "currency": "USD", "asset": "ESTRA1A", "nominal": -2351.85, "reason": "Viaje"}, {"date": "2026-07-07", "amount": -82738.58, "currency": "ARS", "asset": "SPOT", "nominal": -3, "reason": "Viaje"}, {"date": "2026-07-07", "amount": -35729.82, "currency": "ARS", "asset": "RIO", "nominal": -2, "reason": "Viaje"}, {"date": "2026-07-07", "amount": -26025.19, "currency": "ARS", "asset": "QCOM", "nominal": -1, "reason": "Viaje"}, {"date": "2026-07-07", "amount": -218205, "currency": "ARS", "asset": "YPF", "nominal": -3, "reason": "Viaje"}, {"date": "2026-07-07", "amount": -210179.27, "currency": "ARS", "asset": "PAMP", "nominal": -41, "reason": "Viaje"}, {"date": "2026-07-14", "amount": 67674.78, "currency": "ARS", "asset": "IBM", "nominal": 3, "reason": "Ahorro personal"}, {"date": "2026-07-14", "amount": 77032.24, "currency": "ARS", "asset": "YPF", "nominal": 1, "reason": "Ahorro personal"}], "fixedMaster": [{"name": "Rappi Pro", "currency": "ARS", "payment": "VISA - Santander", "amount": 9990, "category": "Suscripción", "installments": null, "price_update": "Indefinido", "start": null, "end": null}, {"name": "Youtube Premium", "currency": "ARS", "payment": "Lemon", "amount": 1740, "category": "Suscripción", "installments": null, "price_update": "Indefinido", "start": null, "end": null}, {"name": "ChatGPT", "currency": "USD", "payment": "VISA - Santander", "amount": 20, "category": "Suscripción", "installments": null, "price_update": "Indefinido", "start": null, "end": null}, {"name": "OnFit", "currency": "ARS", "payment": "VISA - Santander", "amount": 33990, "category": "Suscripción", "installments": null, "price_update": "Indefinido", "start": null, "end": null}, {"name": "Philips Hue", "currency": "ARS", "payment": "VISA - ICBC", "amount": 23330, "category": "Cuotas", "installments": 12, "price_update": "Indefinido", "start": "2025-10-01", "end": "2026-10-01"}, {"name": "Silla Oficina", "currency": "ARS", "payment": "VISA - Santander", "amount": 5939.5, "category": "Cuotas", "installments": 12, "price_update": "Indefinido", "start": "2025-11-01", "end": "2026-11-01"}, {"name": "Control remoto TV Clay", "currency": "ARS", "payment": "VISA - Santander", "amount": 3266.83, "category": "Cuotas", "installments": 6, "price_update": "Indefinido", "start": "2026-01-01", "end": "2026-06-01"}, {"name": "Regalo Mate (Riñonera)", "currency": "ARS", "payment": "VISA - ICBC", "amount": 3550, "category": "Cuotas", "installments": 6, "price_update": "Indefinido", "start": "2026-01-01", "end": "2026-06-01"}, {"name": "Especiero", "currency": "ARS", "payment": "Master - MP", "amount": 4595.47, "category": "Cuotas", "installments": 6, "price_update": "Indefinido", "start": "2026-01-01", "end": "2026-06-01"}, {"name": "Cattaneo", "currency": "ARS", "payment": "Transferencia", "amount": 30833.335, "category": "Cuotas", "installments": 6, "price_update": "Indefinido", "start": "2026-02-01", "end": "2026-07-01"}, {"name": "Zapatero", "currency": "ARS", "payment": "VISA - Santander", "amount": 6933, "category": "Cuotas", "installments": 9, "price_update": "Indefinido", "start": "2026-03-01", "end": "2026-12-01"}, {"name": "Patente 1-2026", "currency": "ARS", "payment": "Transferencia", "amount": 13916.44, "category": "Cuotas", "installments": 12, "price_update": "Indefinido", "start": "2026-06-01", "end": "2027-05-01"}, {"name": "Philips Hue (luces indirectas)", "currency": "ARS", "payment": "VISA - ICBC", "amount": 13006.167, "category": "Cuotas", "installments": 18, "price_update": null, "start": "2026-07-01", "end": "2028-01-01"}, {"name": "Sodastream", "currency": "ARS", "payment": "Master débito - MP", "amount": 14918.18, "category": "Cuotas", "installments": 6, "price_update": "Indefinido", "start": "2026-04-23", "end": "2026-09-23"}, {"name": "Switch Philips Hue", "currency": "ARS", "payment": "VISA - ICBC", "amount": 2971.38, "category": "Cuotas", "installments": 18, "price_update": "Indefinido", "start": "2026-05-01", "end": "2027-11-01"}, {"name": "Mouse Delfi", "currency": "ARS", "payment": "VISA - Santander", "amount": 2933.24, "category": "Cuotas", "installments": 9, "price_update": "Indefinido", "start": "2026-09-01", "end": "2027-06-01"}, {"name": "Regalo jota (zapas)", "currency": "ARS", "payment": "VISA - Santander", "amount": 3331.25, "category": "Cuotas", "installments": 6, "price_update": null, "start": "2026-07-01", "end": "2026-12-01"}, {"name": "Mopa repuesto", "currency": "ARS", "payment": "VISA - Santander", "amount": 6279.15, "category": "Cuotas", "installments": 3, "price_update": null, "start": "2026-07-01", "end": "2026-09-01"}, {"name": "Regalo Delfi (zapas)", "currency": "ARS", "payment": "VISA - Santander", "amount": 39540.38, "category": "Cuotas", "installments": 3, "price_update": null, "start": "2026-08-01", "end": "2026-11-01"}, {"name": "Recarga de dos cilindros soda 20-8", "currency": "ARS", "payment": "VISA - Santander", "amount": 15266, "category": "Cuotas", "installments": 3, "price_update": null, "start": "2026-08-01", "end": "2026-11-01"}, {"name": "Quita pelusa", "currency": "ARS", "payment": "VISA - Santander", "amount": 2100, "category": "Cuotas", "installments": 9, "price_update": null, "start": "2026-09-01", "end": "2027-06-01"}, {"name": "Meraki", "currency": "ARS", "payment": "VISA - Santander", "amount": 5379.58, "category": "Cuotas", "installments": 6, "price_update": null, "start": "2026-09-01", "end": "2027-03-01"}, {"name": "Airtags", "currency": "ARS", "payment": "VISA - ICBC", "amount": 17105.3305555556, "category": "Cuotas", "installments": 18, "price_update": null, "start": "2026-09-01", "end": "2028-03-01"}], "fixedTotals": [{"month": "2025-08-01", "amount": 143664.86}, {"month": "2025-09-01", "amount": 359862.36}, {"month": "2025-10-01", "amount": 347730.23000000004}, {"month": "2025-11-01", "amount": 322060.78}, {"month": "2025-12-01", "amount": 326464.62}, {"month": "2026-01-01", "amount": 210384.47}, {"month": "2026-02-01", "amount": 273567.45499999996}, {"month": "2026-03-01", "amount": 273217.91500000004}, {"month": "2026-04-01", "amount": 316436.045}, {"month": "2026-05-01", "amount": 322234.335}, {"month": "2026-06-01", "amount": 311292.59500000003}, {"month": "2026-07-01", "amount": 327712.142}, {"month": "2026-08-01", "amount": 344202.387}, {"month": "2026-09-01", "amount": 341837.8575555556}], "insurance": [{"month": "2025-08-01", "amount": 52200, "change": null}, {"month": "2025-09-01", "amount": 54241.9, "change": 0.03764433030553873}, {"month": "2025-10-01", "amount": 54241.89, "change": -1.843593577221824e-07}, {"month": "2025-11-01", "amount": 60334.14, "change": 0.10097516928226706}, {"month": "2025-12-01", "amount": 60334.11, "change": -4.972311682203624e-07}, {"month": "2026-01-01", "amount": 62650.35, "change": 0.03697090279623335}, {"month": "2026-02-01", "amount": 62581, "change": -0.001108163819689659}, {"month": "2026-03-01", "amount": 64975.16, "change": 0.03684731211127457}, {"month": "2026-04-01", "amount": 64975.11, "change": -7.69525438324158e-07}, {"month": "2026-05-01", "amount": 71082.08, "change": 0.08591434015436804}, {"month": "2026-06-01", "amount": 71082.02, "change": -8.440953140846544e-07}, {"month": "2026-07-01", "amount": 74917.3, "change": 0.05119351605036485}, {"month": "2026-08-01", "amount": 75034.5, "change": 0.001561948170508194}, {"month": "2026-09-01", "amount": 78251.82, "change": 0.041114954259210926}], "patent": [{"month": "2025-10-01", "amount": 125552.64}, {"month": "2025-11-01", "amount": 125552.64}, {"month": "2025-12-01", "amount": 123052.64}, {"month": "2026-06-01", "amount": 13916.44}, {"month": "2026-07-01", "amount": 13916.44}, {"month": "2026-08-01", "amount": 13916.44}, {"month": "2026-09-01", "amount": 13916.44}, {"month": "2026-10-01", "amount": 13916.44}, {"month": "2026-11-01", "amount": 13916.44}, {"month": "2026-12-01", "amount": 13916.44}, {"month": "2027-01-01", "amount": 13916.44}, {"month": "2027-02-01", "amount": 13916.44}, {"month": "2027-03-01", "amount": 13916.44}, {"month": "2027-04-01", "amount": 13916.44}, {"month": "2027-05-01", "amount": 13916.44}], "gifts": {"title": "Regalo Juan- Visa Santander", "headers": ["Cuota 1 (Julio)", "Cuota 2 (Agosto)", "Cuota 3 (Septiembre)", "Cuota 4 (Octubre)", "Cuota 5 (Noviembre)", "Cuota 6 (Diciembre)"], "rows": [{"person": "Rena", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Rafa", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Mati", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Feli", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Franpo", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Frangiu", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}, {"person": "Manu", "installments": [3330.0, 3330.0, 3330.0, 3330.0, 3330.0, 3330.0]}]}, "lists": {"variableCategories": ["Alcohol, fiestas y +", "Alojamientos", "Articulos", "Comida y bebidas", "Comidas Compartidas", "Delivery", "Didi/Uber/Cabify", "Entretenimiento", "Estacionamiento", "Farmacia", "Juegos", "Kiosco", "Lavarropa", "Nafta", "Otros / No sé", "Regalos / Invitaciones", "Restaurante/Bares", "Salud", "Servicios", "Supermercado", "Transporte público", "Verduleria"], "payments": ["Lemon", "Master - MP", "Master débito - MP", "Transferencia", "VISA - ICBC", "VISA - Santander"], "currencies": ["ARS", "USD"]}};
+const storeKey = "mateo_gastos_dashboard_v1";
+const SUPABASE_URL = "https://lrrqinobadmpmvtnhdfm.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yIBLTydOT48ejnd8TXg3qg_TcmP0y-L";
+const sb = window.supabase?.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let cloudUser=null;
+let cloudReady=false;
+let suppressCloudSync=true;
+let cloudSaveTimer=null;
+let cloudSaveInFlight=false;
+let cloudSaveAgain=false;
+let cloudUpdatedAt=null;
+let cloudHasRow=false;
+let local = JSON.parse(localStorage.getItem(storeKey) || '{"variables":[],"fixed":[],"savings":[],"gifts":[],"giftPaid":{}}');
+local.variables ||= [];
+local.fixed ||= [];
+local.savings ||= [];
+local.gifts ||= [];
+local.giftPaid ||= {};
+local.fxOverrides ||= {};
+local.deletedItems ||= [];
+local.edits ||= {};
+local.variableCategories = Array.isArray(local.variableCategories) ? local.variableCategories : [...BASE.lists.variableCategories];
+local.categoryAliases = local.categoryAliases && typeof local.categoryAliases === 'object' && !Array.isArray(local.categoryAliases) ? local.categoryAliases : {};
+local.salaryOverrides = local.salaryOverrides && typeof local.salaryOverrides === 'object' && !Array.isArray(local.salaryOverrides) ? local.salaryOverrides : {};
+local.fixedSpecialAdminTab = ['Seguro','Patente'].includes(local.fixedSpecialAdminTab) ? local.fixedSpecialAdminTab : 'Seguro';
+local.hb20FixedTab = ['Seguro','Patente'].includes(local.hb20FixedTab) ? local.hb20FixedTab : 'Seguro';
+if(typeof local.showFundLetters!=='boolean') local.showFundLetters=true;
+local.selectedGiftId ||= 'base-juan-visa-santander';
+local.variables = Array.isArray(local.variables) ? local.variables : [];
+local.fixed = Array.isArray(local.fixed) ? local.fixed : [];
+local.savings = Array.isArray(local.savings) ? local.savings : [];
+local.deletedItems = Array.isArray(local.deletedItems) ? local.deletedItems : [];
+local.edits = local.edits && typeof local.edits === 'object' && !Array.isArray(local.edits) ? local.edits : {};
+function uid(prefix){return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`}
+let migrated=false;
+local.variables.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-var-${i}`;migrated=true}});
+local.fixed.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-fix-${i}`;migrated=true}});
+local.savings.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-sav-${i}`;migrated=true}});
+if(migrated) localStorage.setItem(storeKey,JSON.stringify(local));
+let charts = {};
+let savingsSort = {key:'date', direction:'desc'};
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const nfARS = new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
+const nfUSD = new Intl.NumberFormat('es-AR',{style:'currency',currency:'USD',maximumFractionDigits:2});
+const nf = new Intl.NumberFormat('es-AR',{maximumFractionDigits:1});
+const monthFmt = new Intl.DateTimeFormat('es-AR',{month:'short',year:'2-digit'});
+const fullMonthFmt = new Intl.DateTimeFormat('es-AR',{month:'long',year:'numeric'});
+function dparse(s){ if(!s)return null; const [y,m,d]=(s+'-01').split('-').map(Number); return new Date(y,m-1,d||1); }
+function monthLabel(m){return fullMonthFmt.format(dparse(m+'-01')).replace(/^./,c=>c.toUpperCase())}
+function shortMonth(m){return monthFmt.format(dparse(m+'-01')).replace('.','')}
+function money(v,c='ARS'){if(v===null||v===undefined||Number.isNaN(+v))return '—';return c==='USD'?nfUSD.format(v):nfARS.format(v)}
+function ym(s){return s?.slice(0,7)}
+function baseFxExact(m){const r=BASE.overview.find(x=>x.month===m);return r?.fx??null}
+function baseFxFor(m){return baseFxExact(m) ?? BASE.meta.latestFx}
+function fxFor(m){const v=Number(local.fxOverrides?.[m]);return v>0?v:baseFxFor(m)}
+function latestFxValue(){return fxFor(BASE.meta.latestFxMonth)}
+function baseSalaryExact(m){const r=BASE.overview.find(x=>x.month===m);return r?.salary??null}
+function salaryFor(m){const raw=local.salaryOverrides?.[m];if(raw!==undefined&&raw!==null&&raw!==''&&Number(raw)>0)return Number(raw);return baseSalaryExact(m)}
+function salaryMonths(){const set=new Set(BASE.overview.filter(x=>x.salary!=null).map(x=>x.month));Object.keys(local.salaryOverrides||{}).forEach(m=>set.add(m));return [...set].filter(m=>salaryFor(m)!=null).sort()}
+function latestSalaryMonth(){const ms=salaryMonths();return ms.length?ms[ms.length-1]:null}
+function arsValue(x){return Number(x.amount||0)*(x.currency==='USD'?fxFor(ym(x.date)):1)}
+function groupSum(arr,keyFn,valFn=x=>x){const o={};arr.forEach(x=>{const k=keyFn(x)||'Sin dato';o[k]=(o[k]||0)+Number(valFn(x)||0)});return o}
+function destroy(name){if(charts[name]){charts[name].destroy();delete charts[name]}}
+function makeChart(name,canvas,config){destroy(name); const ctx=$(canvas); if(ctx && window.Chart) charts[name]=new Chart(ctx,config)}
+const palette=['#1b7f5c','#588a77','#7a8f87','#b98c54','#8a6fa8','#477c9c','#b45c66','#9d9b54','#5f6f88'];
+const KNOWN_FUND_LETTERS=new Set(['PER2A','BCAHA','BCMMA','S28N5','ESTRA1A']);
+const PAYMENT_LOGOS = {"Santander": "data:image/png;base64,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", "MercadoPago": "data:image/png;base64,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", "Lemon": "data:image/png;base64,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", "ICBC": "data:image/png;base64,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"};
+const paymentLogoImages={};
+Object.entries(PAYMENT_LOGOS).forEach(([k,src])=>{const img=new Image();img.src=src;img.onload=()=>{if(charts.fixedPayment)charts.fixedPayment.draw()};paymentLogoImages[k]=img});
+function paymentBrand(payment){
+  const p=String(payment||'');
+  if(/santander/i.test(p))return 'Santander';
+  if(/icbc/i.test(p))return 'ICBC';
+  if(/^lemon$/i.test(p.trim()))return 'Lemon';
+  if(/transferencia/i.test(p)||/mercado\s*pago/i.test(p)||/(^|\s|-)MP($|\s|-)/i.test(p))return 'MercadoPago';
+  return null;
+}
+function paymentLabelHtml(payment){
+  const label=String(payment||'—'),brand=paymentBrand(label),src=brand?PAYMENT_LOGOS[brand]:null;
+  return `<span class="payment-label">${src?`<img class="payment-logo ${brand==='Santander'?'santander':''}" src="${src}" alt="${brand==='MercadoPago'?'Mercado Pago':brand}">`:''}<span>${escHtml(label)}</span></span>`;
+}
+const paymentLogoPlugin={
+  id:'paymentLogoPlugin',
+  afterDraw(chart){
+    if(chart.canvas?.id!=='fixedPayment')return;
+    const y=chart.scales?.y;if(!y)return;
+    const labels=chart.data?.labels||[],ctx=chart.ctx,x=chart.chartArea.left-23;
+    labels.forEach((label,i)=>{
+      const brand=paymentBrand(label),img=brand?paymentLogoImages[brand]:null;
+      if(!img||!img.complete||!img.naturalWidth)return;
+      const py=y.getPixelForTick(i),size=17;
+      ctx.save();ctx.drawImage(img,x-size/2,py-size/2,size,size);ctx.restore();
+    });
+  }
+};
+if(window.Chart)Chart.register(paymentLogoPlugin);
+
+function normalizedAsset(v){return String(v||'').trim().toUpperCase()}
+function isFundLetterMovement(x){
+  if(typeof x?.isFundLetter==='boolean') return x.isFundLetter;
+  return KNOWN_FUND_LETTERS.has(normalizedAsset(x?.asset));
+}
+function escHtml(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]))}
+function resolveVariableCategory(category){
+  let cur=String(category||'').trim()||'Otros / No sé';
+  const seen=new Set();
+  while(local.categoryAliases?.[cur] && !seen.has(cur)){seen.add(cur);cur=String(local.categoryAliases[cur]).trim()||cur}
+  return cur;
+}
+function availableVariableCategories(){
+  return [...new Set((local.variableCategories||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function filterVariableCategories(){
+  const used=allVariables().map(x=>x.category).filter(Boolean);
+  return [...new Set([...availableVariableCategories(),...used])].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function syncVariableCategoryInputs(){
+  const dl=$('#categoryList');
+  if(dl) dl.innerHTML=availableVariableCategories().map(x=>`<option value="${escHtml(x)}">`).join('');
+}
+function syncVariableCategoryFilter(){
+  const sel=$('#varCategory');if(!sel)return;
+  const prev=sel.value;
+  const cats=filterVariableCategories();
+  sel.innerHTML='<option value="">Todas</option>'+cats.map(x=>`<option value="${escHtml(x)}">${escHtml(x)}</option>`).join('');
+  sel.value=cats.includes(prev)?prev:'';
+}
+function addVariableCategory(name){
+  const value=String(name||'').trim();if(!value)return false;
+  if(availableVariableCategories().some(x=>x.toLocaleLowerCase('es')===value.toLocaleLowerCase('es'))){alert('Esa categoría ya existe.');return false}
+  local.variableCategories.push(value);saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();renderAdmin();refreshDataViews();return true;
+}
+function renameVariableCategory(oldName,newName){
+  const oldV=String(oldName||'').trim(),newV=String(newName||'').trim();if(!oldV||!newV||oldV===newV)return false;
+  if(availableVariableCategories().some(x=>x!==oldV&&x.toLocaleLowerCase('es')===newV.toLocaleLowerCase('es'))){alert('Ya existe otra categoría con ese nombre.');return false}
+  local.variableCategories=(local.variableCategories||[]).map(x=>x===oldV?newV:x);
+  const aliases={...(local.categoryAliases||{})};
+  const resolvesToOld=key=>{let cur=key,seen=new Set();while(aliases[cur]&&!seen.has(cur)){seen.add(cur);cur=aliases[cur]}return cur===oldV};
+  Object.keys(aliases).filter(resolvesToOld).forEach(k=>{if(k===newV)delete aliases[k];else aliases[k]=newV});
+  if(oldV!==newV)aliases[oldV]=newV;
+  if(aliases[newV]===newV)delete aliases[newV];
+  local.categoryAliases=aliases;saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();renderAdmin();refreshDataViews();return true;
+}
+function deleteVariableCategory(name){
+  const value=String(name||'').trim();if(!value)return;
+  const usage=allVariables().filter(x=>x.category===value).length;
+  const msg=usage?`¿Quitar “${value}” de las categorías disponibles?\n\nHay ${usage} movimiento${usage===1?'':'s'} histórico${usage===1?'':'s'} con esta categoría. No se borrarán ni cambiarán.`:`¿Eliminar la categoría “${value}”?`;
+  if(!confirm(msg))return;
+  local.variableCategories=(local.variableCategories||[]).filter(x=>x!==value);saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();renderAdmin();refreshDataViews();
+}
+
+function isDeleted(key){return local.deletedItems.includes(key)}
+function editPatch(key){return local.edits?.[key]||null}
+function withEdit(key,obj){const patch=editPatch(key);return patch?{...obj,...patch,__edited:true}:obj}
+function allVariables(){return [
+  ...BASE.variableTransactions.map((x,i)=>{const key=`var|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
+  ...local.variables.map(x=>({...x,__key:`var|local|${x.__id}`,__source:'Local',__local:true}))
+].filter(x=>!isDeleted(x.__key)).map(x=>({...x,category:resolveVariableCategory(x.category)}))}
+function allFixed(){return [
+  ...BASE.fixedMaster.map((x,i)=>{const key=`fix|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
+  ...local.fixed.map(x=>({...x,__key:`fix|local|${x.__id}`,__source:'Local',__local:true}))
+].filter(x=>!isDeleted(x.__key))}
+function allSavings(){return [
+  ...BASE.savingsTransactions.map((x,i)=>{const key=`sav|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
+  ...local.savings.map(x=>({...x,__key:`sav|local|${x.__id}`,__source:'Local',__local:true}))
+].filter(x=>!isDeleted(x.__key))}
+function entryByKey(key){
+  const [type,source,id]=key.split('|'); let raw=null;
+  if(type==='var') raw=source==='base'?BASE.variableTransactions[Number(id)]:local.variables.find(r=>r.__id===id);
+  if(type==='sav') raw=source==='base'?BASE.savingsTransactions[Number(id)]:local.savings.find(r=>r.__id===id);
+  if(type==='fix'&&source==='base') raw=BASE.fixedMaster[Number(id)];
+  if(type==='fix'&&source==='local') raw=local.fixed.find(r=>r.__id===id);
+  if(type==='fix'&&source==='insurance'){
+    const x=BASE.insurance.find(r=>ym(r.month)===id); if(x) raw={name:'Seguro',currency:'ARS',payment:'Débito/seguro',amount:x.amount,category:'Seguro',start:id+'-01',end:id+'-01'};
+  }
+  if(type==='fix'&&source==='patent'){
+    const x=BASE.patent.find(r=>ym(r.month)===id); if(x) raw={name:'Patente',currency:'ARS',payment:'Transferencia',amount:x.amount,category:'Patente',start:id+'-01',end:id+'-01'};
+  }
+  if(!raw)return null;
+  return source==='local'?{...raw,__key:key,__source:'Local',__local:true}:{...withEdit(key,raw),__key:key,__source:'Excel'};
+}
+function updateEntry(key,patch){
+  const [type,source,id]=key.split('|');
+  if(source==='local'){
+    let row=null;
+    if(type==='var')row=local.variables.find(r=>r.__id===id);
+    if(type==='sav')row=local.savings.find(r=>r.__id===id);
+    if(type==='fix')row=local.fixed.find(r=>r.__id===id);
+    if(row)Object.assign(row,patch);
+  }else{
+    local.edits[key]={...(local.edits[key]||{}),...patch};
+  }
+  saveLocal();refreshDataViews();
+}
+function normalizeCloudState(state){
+  const x=state&&typeof state==='object'&&!Array.isArray(state)?state:{};
+  x.variables=Array.isArray(x.variables)?x.variables:[];
+  x.fixed=Array.isArray(x.fixed)?x.fixed:[];
+  x.savings=Array.isArray(x.savings)?x.savings:[];
+  x.gifts=Array.isArray(x.gifts)?x.gifts:[];
+  x.giftPaid=x.giftPaid&&typeof x.giftPaid==='object'&&!Array.isArray(x.giftPaid)?x.giftPaid:{};
+  x.fxOverrides=x.fxOverrides&&typeof x.fxOverrides==='object'&&!Array.isArray(x.fxOverrides)?x.fxOverrides:{};
+  x.deletedItems=Array.isArray(x.deletedItems)?x.deletedItems:[];
+  x.edits=x.edits&&typeof x.edits==='object'&&!Array.isArray(x.edits)?x.edits:{};
+  x.variableCategories=Array.isArray(x.variableCategories)?x.variableCategories:[...BASE.lists.variableCategories];
+  x.categoryAliases=x.categoryAliases&&typeof x.categoryAliases==='object'&&!Array.isArray(x.categoryAliases)?x.categoryAliases:{};
+  x.salaryOverrides=x.salaryOverrides&&typeof x.salaryOverrides==='object'&&!Array.isArray(x.salaryOverrides)?x.salaryOverrides:{};
+  x.fixedSpecialAdminTab=['Seguro','Patente'].includes(x.fixedSpecialAdminTab)?x.fixedSpecialAdminTab:'Seguro';
+  x.hb20FixedTab=['Seguro','Patente'].includes(x.hb20FixedTab)?x.hb20FixedTab:'Seguro';
+  if(typeof x.showFundLetters!=='boolean')x.showFundLetters=true;
+  x.selectedGiftId=x.selectedGiftId||'base-juan-visa-santander';
+  let changed=false;
+  x.variables.forEach((r,i)=>{if(!r.__id){r.__id=`cloud-var-${i}`;changed=true}});
+  x.fixed.forEach((r,i)=>{if(!r.__id){r.__id=`cloud-fix-${i}`;changed=true}});
+  x.savings.forEach((r,i)=>{if(!r.__id){r.__id=`cloud-sav-${i}`;changed=true}});
+  return x;
+}
+function localHasPersonalState(x=local){
+  return !!(
+    x.variables?.length||x.fixed?.length||x.savings?.length||x.gifts?.length||
+    Object.keys(x.giftPaid||{}).length||Object.keys(x.fxOverrides||{}).length||
+    (x.deletedItems||[]).length||Object.keys(x.edits||{}).length||
+    Object.keys(x.salaryOverrides||{}).length||Object.keys(x.categoryAliases||{}).length||
+    JSON.stringify(x.variableCategories||[])!==JSON.stringify(BASE.lists.variableCategories)
+  );
+}
+function setSyncStatus(text,type=''){
+  const pill=$('#syncPill'),label=$('#syncStatus');
+  if(label)label.textContent=text;
+  if(pill){pill.classList.remove('syncing','ok','error');if(type)pill.classList.add(type)}
+}
+function scheduleCloudSave(){
+  if(suppressCloudSync||!cloudUser||!cloudReady)return;
+  clearTimeout(cloudSaveTimer);
+  setSyncStatus('Cambios pendientes','syncing');
+  cloudSaveTimer=setTimeout(()=>{cloudSaveTimer=null;pushCloudState()},650);
+}
+async function pushCloudState(){
+  if(suppressCloudSync||!cloudUser||!cloudReady||!sb)return;
+  if(cloudSaveInFlight){cloudSaveAgain=true;return;}
+  cloudSaveInFlight=true;cloudSaveAgain=false;setSyncStatus('Guardando…','syncing');
+  const now=new Date().toISOString();
+  try{
+    const payload=JSON.parse(JSON.stringify(local));
+    const {error}=await sb.from('dashboard_state').upsert({user_id:cloudUser.id,data:payload,updated_at:now},{onConflict:'user_id'});
+    if(error)throw error;
+    cloudHasRow=true;cloudUpdatedAt=now;setSyncStatus('Sincronizado','ok');
+    $('#cloudMigrationBanner')?.classList.remove('show');
+  }catch(err){
+    console.error('Supabase save error',err);setSyncStatus('Error al guardar','error');
+  }finally{
+    cloudSaveInFlight=false;
+    if(cloudSaveAgain){cloudSaveAgain=false;pushCloudState();}
+  }
+}
+function saveLocal(){localStorage.setItem(storeKey,JSON.stringify(local));scheduleCloudSave()}
+function renderAllAfterCloudLoad(){
+  refreshDataViews();
+  syncVariableCategoryInputs();syncVariableCategoryFilter();
+  if($('#adminModal')?.classList.contains('show'))renderAdmin();
+}
+async function pullCloudState({force=false}={}){
+  if(!cloudUser||!sb)return false;
+  if(cloudSaveInFlight||cloudSaveTimer)return false;
+  setSyncStatus('Leyendo nube…','syncing');
+  try{
+    const {data,error}=await sb.from('dashboard_state').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
+    if(error)throw error;
+    if(!data){
+      cloudHasRow=false;cloudUpdatedAt=null;
+      if(localHasPersonalState()){
+        cloudReady=true;suppressCloudSync=false;
+        await pushCloudState();
+      }else{
+        cloudReady=true;suppressCloudSync=false;
+        setSyncStatus('Nube vacía','syncing');
+        $('#cloudMigrationBanner')?.classList.add('show');
+      }
+      return true;
+    }
+    cloudHasRow=true;
+    const incomingTime=data.updated_at||null;
+    const shouldApply=force||!cloudUpdatedAt||!incomingTime||incomingTime!==cloudUpdatedAt;
+    if(shouldApply){
+      suppressCloudSync=true;
+      local=normalizeCloudState(data.data);
+      localStorage.setItem(storeKey,JSON.stringify(local));
+      cloudUpdatedAt=incomingTime;
+      suppressCloudSync=false;cloudReady=true;
+      renderAllAfterCloudLoad();
+    }else{cloudReady=true;suppressCloudSync=false;}
+    $('#cloudMigrationBanner')?.classList.remove('show');
+    setSyncStatus('Sincronizado','ok');
+    return true;
+  }catch(err){
+    console.error('Supabase load error',err);
+    cloudReady=false;suppressCloudSync=true;setSyncStatus('Error de conexión','error');
+    return false;
+  }
+}
+async function startCloudSession(user){
+  cloudUser=user;cloudReady=false;suppressCloudSync=true;
+  $('#cloudAuth')?.classList.add('hidden');
+  setSyncStatus('Conectando…','syncing');
+  await pullCloudState({force:true});
+}
+async function signOutCloud(){
+  if(sb)await sb.auth.signOut();
+  cloudUser=null;cloudReady=false;suppressCloudSync=true;cloudUpdatedAt=null;
+  setSyncStatus('Sin conectar','');
+  $('#cloudAuth')?.classList.remove('hidden');
+}
+async function importCloudBackup(file){
+  const txt=await file.text();
+  const parsed=JSON.parse(txt);
+  local=normalizeCloudState(parsed);
+  localStorage.setItem(storeKey,JSON.stringify(local));
+  renderAllAfterCloudLoad();
+  if(cloudUser){cloudReady=true;suppressCloudSync=false;await pushCloudState();}
+}
+function setupCloud(){
+  if(!sb){$('#cloudAuthError').textContent='No se pudo cargar Supabase. Revisá tu conexión a internet.';return;}
+  const form=$('#cloudLoginForm');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const email=$('#cloudEmail').value.trim(),password=$('#cloudPassword').value;
+    const btn=$('#cloudLoginBtn'),errBox=$('#cloudAuthError');
+    errBox.textContent='';btn.disabled=true;btn.textContent='Entrando…';
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    btn.disabled=false;btn.textContent='Iniciar sesión';
+    if(error){errBox.textContent=error.message||'No se pudo iniciar sesión.';return;}
+    if(data?.user)await startCloudSession(data.user);
+  });
+  $('#logoutBtn').addEventListener('click',signOutCloud);
+  $('#syncNowBtn').addEventListener('click',async()=>{if(!cloudUser)return;await pullCloudState({force:true})});
+  $('#importStateBtn').addEventListener('click',()=>$('#importStateInput').click());
+  $('#importStateInput').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    if(!confirm('¿Importar este respaldo y reemplazar el estado actual del dashboard?')){e.target.value='';return;}
+    try{await importCloudBackup(file);alert('Respaldo importado y sincronizado.');}
+    catch(err){console.error(err);alert('No pude importar ese archivo JSON.');}
+    e.target.value='';
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudUser&&cloudReady)pullCloudState()});
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'){cloudUser=null;cloudReady=false;suppressCloudSync=true;$('#cloudAuth')?.classList.remove('hidden');setSyncStatus('Sin conectar','');}
+  });
+  (async()=>{
+    const {data}=await sb.auth.getSession();
+    if(data?.session?.user)await startCloudSession(data.session.user);
+    else $('#cloudAuth')?.classList.remove('hidden');
+  })();
+}
+function describeKey(key){
+  const [type]=key.split('|'); const x=entryByKey(key);
+  if(type==='var'&&x) return `${x.name} · ${x.date.split('-').reverse().join('/')} · ${money(x.amount,x.currency)}`;
+  if(type==='sav'&&x) return `${x.asset} · ${x.reason||'Movimiento'} · ${x.date.split('-').reverse().join('/')} · ${money(x.amount,x.currency)}`;
+  if(type==='fix'&&x) return `${x.name} · ${money(x.amount,x.currency)}`;
+  return key;
+}
+function requestDelete(key){
+  const label=describeKey(key);
+  if(!confirm(`¿Eliminar ${label}?\n\nEl dashboard lo ocultará, pero vas a poder restaurarlo desde “Administrar”.`)) return;
+  if(!isDeleted(key)) local.deletedItems.push(key);
+  saveLocal(); refreshDataViews();
+}
+function restoreDeleted(key){local.deletedItems=local.deletedItems.filter(x=>x!==key);saveLocal();refreshDataViews()}
+function refreshDataViews(){
+  renderSummary();
+  const active=document.querySelector('.page.active')?.id;
+  if(active==='fijos')renderFixed();
+  if(active==='variables')renderVariables();
+  if(active==='ahorros')renderSavings();
+  if(active==='regalos')renderGifts();
+  if($('#adminModal')?.classList.contains('show'))renderAdmin();
+}
+
+function setTabs(){
+  $$('.tab').forEach(b=>b.addEventListener('click',()=>{
+    $$('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    $$('.page').forEach(x=>x.classList.remove('active')); $('#'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='resumen') renderSummary();
+    if(b.dataset.tab==='fijos') renderFixed();
+    if(b.dataset.tab==='variables') renderVariables();
+    if(b.dataset.tab==='ahorros') renderSavings();
+    if(b.dataset.tab==='regalos') renderGifts();
+  }));
+}
+
+function renderSummary(){
+  const c=BASE.meta.completeness;
+  const latestSalaryM=latestSalaryMonth();
+  $('#statusRow').innerHTML=[
+    ['Sueldo',latestSalaryM||c.salary],['Gastos fijos',c.fixed],['Gastos variables',c.variable],['Ahorros',c.savings]
+  ].map(x=>`<span class="chip">${x[0]} · hasta ${monthLabel(x[1])}</span>`).join('');
+  const lastSalary=latestSalaryM?{month:latestSalaryM,salary:salaryFor(latestSalaryM)}:null;
+  const lastFixed=[...BASE.fixedTotals].reverse()[0];
+  const vars=allVariables();
+  const lastVarMonth=[...new Set(vars.map(x=>ym(x.date)))].sort().reverse()[0];
+  const lastVarTotal=lastVarMonth?vars.filter(x=>ym(x.date)===lastVarMonth).reduce((s,x)=>s+arsValue(x),0):0;
+  const savingsRows=allSavings();
+  const balance=savingsRows.reduce((s,x)=>s+arsValue(x),0);
+  const latestRate=latestFxValue();
+  const latestFixedMonth=lastFixed?ym(lastFixed.month):null;
+  const latestFixedValue=latestFixedMonth?adjustedFixedTotal(latestFixedMonth):null;
+  $('#summaryKpis').innerHTML=[
+    ['Último sueldo',money(lastSalary?.salary),monthLabel(lastSalary?.month)],
+    ['Gasto fijo actual',money(latestFixedValue),latestFixedMonth?monthLabel(latestFixedMonth):'—'],
+    ['Último mes variable',money(lastVarTotal),lastVarMonth?monthLabel(lastVarMonth):'Sin movimientos'],
+    ['Ahorro neto aportado',money(balance),`Aprox. ${money(latestRate?balance/latestRate:0,'USD')} · TC ${nf.format(latestRate)}`]
+  ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+
+  const varSourceMonths=new Set(vars.map(x=>ym(x.date)));
+  const savSourceMonths=new Set(savingsRows.map(x=>ym(x.date)));
+  const rows=BASE.overview.map(x=>({...x,salary:salaryFor(x.month),fx:fxFor(x.month),fixed:adjustedFixedTotal(x.month)}));
+  rows.forEach(r=>{
+    if(varSourceMonths.has(r.month)){r.variable=vars.filter(x=>ym(x.date)===r.month).reduce((s,x)=>s+arsValue(x),0);r.variableEstimated=false}
+    if(savSourceMonths.has(r.month)){r.savings=savingsRows.filter(x=>ym(x.date)===r.month).reduce((s,x)=>s+arsValue(x),0)}
+  });
+  const extraMonths=[...new Set([...varSourceMonths,...savSourceMonths,...salaryMonths()])].filter(m=>m&&!rows.some(r=>r.month===m));
+  extraMonths.forEach(m=>rows.push({month:m,salary:salaryFor(m),fixed:null,variable:varSourceMonths.has(m)?vars.filter(x=>ym(x.date)===m).reduce((s,x)=>s+arsValue(x),0):null,variableEstimated:false,savings:savSourceMonths.has(m)?savingsRows.filter(x=>ym(x.date)===m).reduce((s,x)=>s+arsValue(x),0):null,fx:fxFor(m)}));
+  rows.sort((a,b)=>a.month.localeCompare(b.month));
+  const labels=rows.map(x=>shortMonth(x.month));
+  makeChart('overview','#overviewChart',{type:'line',data:{labels,datasets:[
+    {label:'Sueldo',data:rows.map(x=>x.salary),borderColor:palette[0],backgroundColor:palette[0],tension:.28,spanGaps:true},
+    {label:'Gasto fijo',data:rows.map(x=>x.fixed),borderColor:palette[3],backgroundColor:palette[3],tension:.28,spanGaps:true},
+    {label:'Gasto variable',data:rows.map(x=>x.variable),borderColor:palette[6],backgroundColor:palette[6],tension:.28,spanGaps:true,borderDash:[5,3]},
+    {label:'Ahorro neto',data:rows.map(x=>x.savings),borderColor:palette[5],backgroundColor:palette[5],tension:.28,spanGaps:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+
+  const ratioRows=rows.filter(x=>x.salary && (x.fixed||x.variable));
+  makeChart('ratio','#ratioChart',{type:'bar',data:{labels:ratioRows.map(x=>shortMonth(x.month)),datasets:[
+    {label:'Fijos / sueldo',data:ratioRows.map(x=>x.fixed?x.fixed/x.salary*100:null),backgroundColor:palette[3]},
+    {label:'Variables / sueldo',data:ratioRows.map(x=>x.variable?x.variable/x.salary*100:null),backgroundColor:palette[6]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%'}}}}});
+
+  const mixRows=rows.filter(x=>x.fixed||x.variable);
+  makeChart('mix','#mixChart',{type:'bar',data:{labels:mixRows.map(x=>shortMonth(x.month)),datasets:[
+    {label:'Gasto fijo',data:mixRows.map(x=>x.fixed||0),backgroundColor:palette[3],stack:'g'},
+    {label:'Gasto variable',data:mixRows.map(x=>x.variable||0),backgroundColor:palette[6],stack:'g'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+
+  $('#summaryTable').innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Fijos</th><th>Variables</th><th>Ahorro neto</th><th>TC USD</th><th>Disponible*</th></tr></thead><tbody>'+ 
+    rows.map(x=>{const disp=x.salary!=null ? x.salary-(x.fixed||0)-(x.variable||0):null;const changed=local.fxOverrides[x.month]!=null;return `<tr><td>${monthLabel(x.month)} ${x.variableEstimated?'<span class="pill warn">Variable estimado</span>':''}</td><td class="num">${money(x.salary)} ${local.salaryOverrides[x.month]!=null?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(x.fixed)}</td><td class="num">${money(x.variable)}</td><td class="num ${x.savings<0?'bad':'good'}">${money(x.savings)}</td><td class="num">${x.fx?nf.format(x.fx):'—'} ${changed?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(disp)}</td></tr>`}).join('')+
+    '</tbody><tfoot><tr><td colspan="7" class="muted" style="padding:12px">* Disponible = sueldo - gastos fijos - gastos variables. No descuenta el ahorro como gasto.</td></tr></tfoot>';
+}
+
+function monthRange(start,end){
+  const out=[]; let d=dparse(start+'-01'), e=dparse(end+'-01');
+  while(d<=e){out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);d=new Date(d.getFullYear(),d.getMonth()+1,1)}
+  return out;
+}
+function addMonths(m,n){const d=dparse(m+'-01');d.setMonth(d.getMonth()+n);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function fixedActive(item,m){
+  if(item.category==='Suscripción' && !item.start) return true;
+  const s=ym(item.start); const e=ym(item.end);
+  if(!s) return item.category==='Suscripción';
+  return m>=s && (!e || m<=e);
+}
+function fixedRowsFor(m){
+  const rows=allFixed().filter(x=>fixedActive(x,m)).filter(x=>{
+    if(x.__source!=='Local'||!['Seguro','Patente'].includes(x.category))return true;
+    return baseFixedSpecial(x.category,m)==null;
+  }).map(x=>({...x,source:x.__source||'Excel'}));
+  const ins=BASE.insurance.find(x=>ym(x.month)===m); const insKey=`fix|insurance|${m}`;
+  if(ins&&!isDeleted(insKey)){const raw={name:'Seguro',currency:'ARS',payment:'Débito/seguro',amount:ins.amount,category:'Seguro',start:m+'-01',end:m+'-01'};rows.push({...withEdit(insKey,raw),source:'Excel',__key:insKey,__source:'Excel'});}
+  const pat=BASE.patent.find(x=>ym(x.month)===m); const patKey=`fix|patent|${m}`;
+  if(pat&&!isDeleted(patKey)){const raw={name:'Patente',currency:'ARS',payment:'Transferencia',amount:pat.amount,category:'Patente',start:m+'-01',end:m+'-01'};rows.push({...withEdit(patKey,raw),source:'Excel',__key:patKey,__source:'Excel'});}
+  return rows;
+}
+function adjustedFixedTotal(m){
+  const base=BASE.fixedTotals.find(x=>ym(x.month)===m);
+  if(!base) return fixedRowsFor(m).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1),0);
+  let total=Number(base.amount||0), originalFx=baseFxFor(m), currentFx=fxFor(m);
+  BASE.fixedMaster.forEach((orig,i)=>{
+    const key=`fix|base|${i}`, cur=withEdit(key,orig);
+    if(fixedActive(orig,m)) total-=Number(orig.amount||0)*(orig.currency==='USD'?originalFx:1);
+    if(!isDeleted(key)&&fixedActive(cur,m)) total+=Number(cur.amount||0)*(cur.currency==='USD'?currentFx:1);
+  });
+  const ins=BASE.insurance.find(x=>ym(x.month)===m);
+  if(ins){const key=`fix|insurance|${m}`,raw={name:'Seguro',currency:'ARS',payment:'Débito/seguro',amount:ins.amount,category:'Seguro',start:m+'-01',end:m+'-01'},cur=withEdit(key,raw);total-=Number(ins.amount||0);if(!isDeleted(key))total+=Number(cur.amount||0)*(cur.currency==='USD'?currentFx:1)}
+  const pat=BASE.patent.find(x=>ym(x.month)===m);
+  if(pat){const key=`fix|patent|${m}`,raw={name:'Patente',currency:'ARS',payment:'Transferencia',amount:pat.amount,category:'Patente',start:m+'-01',end:m+'-01'},cur=withEdit(key,raw);total-=Number(pat.amount||0);if(!isDeleted(key))total+=Number(cur.amount||0)*(cur.currency==='USD'?currentFx:1)}
+  local.fixed.forEach(x=>{const key=`fix|local|${x.__id}`;const duplicateSpecial=['Seguro','Patente'].includes(x.category)&&baseFixedSpecial(x.category,m)!=null;if(!duplicateSpecial&&!isDeleted(key)&&fixedActive(x,m))total+=Number(x.amount||0)*(x.currency==='USD'?currentFx:1)});
+  return total;
+}
+function renderFixed(){
+  const select=$('#fixedMonth');
+  if(!select.options.length){
+    const months=monthRange('2026-01','2028-03');
+    select.innerHTML=months.map(m=>`<option value="${m}" ${m==='2026-09'?'selected':''}>${monthLabel(m)}</option>`).join('');
+    select.addEventListener('change',renderFixed);
+  }
+  const m=select.value||'2026-09'; const rows=fixedRowsFor(m);
+  const total=rows.reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1),0);
+  const cuotaRows=rows.filter(x=>x.category==='Cuotas'); const subs=rows.filter(x=>x.category==='Suscripción');
+  $('#fixedKpis').innerHTML=[
+    ['Total visible del mes',money(total),monthLabel(m)],
+    ['Cuotas activas',money(cuotaRows.reduce((s,x)=>s+Number(x.amount||0),0)),`${cuotaRows.length} compromisos`],
+    ['Suscripciones',money(subs.reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1),0)),`${subs.length} activas`],
+    ['Compromisos activos',String(rows.length),`TC ${nf.format(fxFor(m))} ARS/USD`]
+  ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+
+  const hist=BASE.fixedTotals.map(x=>({m:ym(x.month),v:adjustedFixedTotal(ym(x.month)),type:'Real'}));
+  const projMonths=monthRange('2026-10','2028-03');
+  const proj=projMonths.map(mm=>({m:mm,v:fixedRowsFor(mm).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(mm):1),0),type:'Compromisos'}));
+  const comb=[...hist,...proj];
+  makeChart('fixedEvolution','#fixedEvolution',{type:'line',data:{labels:comb.map(x=>shortMonth(x.m)),datasets:[
+    {label:'Histórico ajustado',data:comb.map(x=>x.type==='Real'?x.v:null),borderColor:palette[0],backgroundColor:palette[0],tension:.25,spanGaps:false},
+    {label:'Compromisos proyectados*',data:comb.map(x=>x.type==='Compromisos'?x.v:null),borderColor:palette[3],backgroundColor:palette[3],borderDash:[5,4],tension:.25}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{afterBody:()=>'* Proyección solo con compromisos cargados.'}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+
+  const cats=groupSum(rows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
+  makeChart('fixedCategory','#fixedCategory',{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:palette}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  const pays=groupSum(rows.filter(x=>!['Seguro','Patente'].includes(x.category)),x=>x.payment,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
+  makeChart('fixedPayment','#fixedPayment',{type:'bar',data:{labels:Object.keys(pays),datasets:[{label:'Monto',data:Object.values(pays),backgroundColor:palette[0]}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}},y:{ticks:{padding:27}}}}});
+
+  const hbType=local.hb20FixedTab||'Seguro';
+  $$('#hb20FixedTabs [data-hb20-tab]').forEach(b=>b.classList.toggle('active',b.dataset.hb20Tab===hbType));
+  const hbRows=fixedSpecialAdminRows().filter(r=>r.type===hbType&&!r.deleted).sort((a,b)=>a.month.localeCompare(b.month));
+  makeChart('hb20Fixed','#hb20FixedChart',{type:'line',data:{labels:hbRows.map(r=>shortMonth(r.month)),datasets:[{label:hbType,data:hbRows.map(r=>r.amount),borderColor:hbType==='Seguro'?palette[0]:palette[3],backgroundColor:hbType==='Seguro'?palette[0]:palette[3],tension:.25,pointRadius:4,pointHoverRadius:6,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${hbType}: ${money(ctx.raw)}`}}},scales:{y:{beginAtZero:false,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  const hbTabs=$('#hb20FixedTabs');if(hbTabs&&!hbTabs.dataset.bound){hbTabs.dataset.bound='1';hbTabs.addEventListener('click',e=>{const b=e.target.closest('[data-hb20-tab]');if(!b)return;local.hb20FixedTab=b.dataset.hb20Tab;saveLocal();renderFixed();});}
+
+  const installs=cuotaRows.filter(x=>x.installments && x.start);
+  $('#installmentsList').innerHTML=installs.length?installs.map(x=>{const st=ym(x.start);const idx=monthRange(st,m).length;const p=Math.min(100,idx/Number(x.installments)*100);return `<div style="padding:9px 0;border-bottom:1px solid #edf1ef"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px"><b>${x.name}</b><span>${idx}/${x.installments}</span></div><div class="progress"><i style="width:${p}%"></i></div></div>`}).join(''):'<div class="empty">No hay cuotas activas en este mes.</div>';
+
+  $('#fixedTableLabel').textContent=`${rows.length} conceptos · podés editar o eliminar`;
+  $('#fixedTable').innerHTML='<thead><tr><th>Descripción</th><th>Categoría</th><th>Moneda</th><th>Medio de pago</th><th>Monto</th><th>Cuota</th><th>Origen</th><th class="action-col">Acción</th></tr></thead><tbody>'+ 
+  rows.map(x=>{let cu='—';if(x.installments&&x.start){const i=Math.max(1,monthRange(ym(x.start),m).length);cu=`${i}/${x.installments}`}return `<tr><td>${x.name}</td><td><span class="pill">${x.category||'—'}</span></td><td>${x.currency||'ARS'}</td><td>${paymentLabelHtml(x.payment)}</td><td class="num">${money(x.amount,x.currency)}</td><td>${cu}</td><td>${x.source==='Local'?'<span class="pill green">Local</span>':x.__edited?'<span class="pill edited">Excel · editado</span>':'Excel'}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`}).join('')+'</tbody>';
+  $('#fixedTable').onclick=e=>{const edit=e.target.closest('[data-edit-expense]');if(edit){openExpenseEdit(edit.dataset.editExpense);return}const b=e.target.closest('[data-delete-key]');if(b)requestDelete(b.dataset.deleteKey)};
+}
+
+function renderVariables(){
+  const vars=allVariables();
+  const months=[...new Set(vars.map(x=>ym(x.date)).filter(Boolean))].sort().reverse();
+  const ms=$('#varMonth'); const previous=ms.value;
+  ms.innerHTML=months.map((m,i)=>`<option value="${m}" ${(previous===m||(!previous&&i===0))?'selected':''}>${monthLabel(m)}</option>`).join('');
+  if(!ms.dataset.bound){ms.dataset.bound=1;ms.addEventListener('change',renderVariables)}
+  const cs=$('#varCategory'); if(!cs.dataset.bound){cs.dataset.bound='1';cs.addEventListener('change',renderVariables)} syncVariableCategoryFilter();
+  const ps=$('#varPayment'); if(ps.options.length===1){BASE.lists.payments.forEach(p=>ps.insertAdjacentHTML('beforeend',`<option>${p}</option>`));ps.addEventListener('change',renderVariables)}
+  if(!$('#varSearch').dataset.bound){$('#varSearch').dataset.bound=1;$('#varSearch').addEventListener('input',renderVariables)}
+  const m=ms.value||months[0], c=cs.value, p=ps.value, q=$('#varSearch').value.toLowerCase();
+  const rows=vars.filter(x=>ym(x.date)===m && (!c||x.category===c)&&(!p||x.payment===p)&&(!q||x.name.toLowerCase().includes(q)));
+  const total=rows.reduce((s,x)=>s+arsValue(x),0), avg=rows.length?total/rows.length:0;
+  const cat=groupSum(rows,x=>x.category,arsValue); const top=Object.entries(cat).sort((a,b)=>b[1]-a[1])[0];
+  $('#varKpis').innerHTML=[
+    ['Total filtrado',money(total),m?monthLabel(m):'Sin datos'],
+    ['Cantidad',String(rows.length),'movimientos'],
+    ['Ticket promedio',money(avg),'por movimiento'],
+    ['Top categoría',top?.[0]||'—',top?money(top[1]):'Sin datos']
+  ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+  const catSorted=Object.entries(cat).sort((a,b)=>b[1]-a[1]);
+  makeChart('varCategory','#varCategoryChart',{type:'bar',data:{labels:catSorted.map(x=>x[0]),datasets:[{data:catSorted.map(x=>x[1]),backgroundColor:palette[0]}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  const daily=groupSum(rows,x=>x.date,arsValue), dailySorted=Object.entries(daily).sort((a,b)=>a[0].localeCompare(b[0]));
+  makeChart('varDaily','#varDailyChart',{type:'line',data:{labels:dailySorted.map(x=>x[0].slice(8,10)),datasets:[{label:'Gasto diario',data:dailySorted.map(x=>x[1]),borderColor:palette[6],backgroundColor:palette[6],tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  const pay=groupSum(rows,x=>x.payment,arsValue);
+  makeChart('varPayment','#varPaymentChart',{type:'doughnut',data:{labels:Object.keys(pay),datasets:[{data:Object.values(pay),backgroundColor:palette}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  $('#varCount').textContent=`${rows.length} movimientos · TC ${m?nf.format(fxFor(m)):'—'}`;
+  $('#varTable').innerHTML='<thead><tr><th>Fecha</th><th>Gasto</th><th>Categoría</th><th>Medio de pago</th><th>Moneda</th><th>Monto</th><th>ARS equivalente</th><th>Origen</th><th class="action-col">Acción</th></tr></thead><tbody>'+ 
+  rows.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<tr><td>${x.date.split('-').reverse().join('/')}</td><td>${x.name}</td><td>${x.category}</td><td>${paymentLabelHtml(x.payment)}</td><td>${x.currency}</td><td class="num">${money(x.amount,x.currency)}</td><td class="num">${money(arsValue(x))}</td><td>${x.__local?'<span class="pill green">Local</span>':x.__edited?'<span class="pill edited">Excel · editado</span>':'Excel'}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`).join('')+'</tbody>';
+  $('#varTable').onclick=e=>{const edit=e.target.closest('[data-edit-expense]');if(edit){openExpenseEdit(edit.dataset.editExpense);return}const b=e.target.closest('[data-delete-key]');if(b)requestDelete(b.dataset.deleteKey)};
+}
+
+function renderSavings(){
+  const rows=allSavings();
+  const total=rows.reduce((s,x)=>s+arsValue(x),0);
+  const latestRate=latestFxValue();
+  const contributions=rows.filter(x=>Number(x.amount)>0).reduce((s,x)=>s+Math.max(0,arsValue(x)),0);
+  const withdrawals=rows.filter(x=>Number(x.amount)<0).reduce((s,x)=>s+Math.abs(Math.min(0,arsValue(x))),0);
+  $('#savingKpis').innerHTML=[
+    ['Neto aportado aprox.',money(total),`Conversión con TC de cada mes`],
+    ['Equivalente USD',money(latestRate?total/latestRate:0,'USD'),`TC actual ${nf.format(latestRate)}`],
+    ['Aportes acumulados',money(contributions),'Flujos positivos'],
+    ['Retiros / usos',money(withdrawals),'Flujos negativos']
+  ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+  const monthly=groupSum(rows,x=>ym(x.date),arsValue);const monthlyE=Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0]));
+  makeChart('savingMonthly','#savingMonthly',{type:'bar',data:{labels:monthlyE.map(x=>shortMonth(x[0])),datasets:[{data:monthlyE.map(x=>x[1]),backgroundColor:monthlyE.map(x=>x[1]>=0?palette[0]:palette[6])}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  const reasons=Object.entries(groupSum(rows,x=>x.reason,arsValue)).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+  makeChart('savingReason','#savingReason',{type:'bar',data:{labels:reasons.map(x=>x[0]),datasets:[{data:reasons.map(x=>x[1]),backgroundColor:reasons.map(x=>x[1]>=0?palette[0]:palette[6])}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  // Tenencia nominal actual por activo. Usamos el signo del monto porque en algunos
+  // movimientos históricos el nominal de una salida quedó cargado como positivo.
+  const showFundLetters=local.showFundLetters!==false;
+  const fundToggle=$('#showFundLetters'); if(fundToggle) fundToggle.checked=showFundLetters;
+  const positionRows=showFundLetters?rows:rows.filter(x=>!isFundLetterMovement(x));
+  const nominalByAsset=groupSum(
+    positionRows.filter(x=>x.asset && Number(x.nominal||0)!==0),
+    x=>x.asset,
+    x=>{
+      const amount=Number(x.amount||0), nominal=Math.abs(Number(x.nominal||0));
+      const sign=amount<0?-1:amount>0?1:(Number(x.nominal||0)<0?-1:1);
+      return sign*nominal;
+    }
+  );
+  // Monto neto histórico por activo: suma de los importes de cada movimiento en ARS,
+  // usando el TC mensual cuando el movimiento fue en USD. No representa valor de mercado.
+  const arsByAsset=groupSum(
+    positionRows.filter(x=>x.asset),
+    x=>x.asset,
+    x=>arsValue(x)
+  );
+  const assets=Object.entries(nominalByAsset)
+    .filter(([,v])=>Math.abs(v)>0.000001)
+    .map(([asset,nominal])=>({asset,nominal,ars:Number(arsByAsset[asset]||0)}))
+    .sort((a,b)=>Math.abs(b.nominal)-Math.abs(a.nominal));
+  const assetsWrap=$('#savingAssetsWrap');
+  if(assetsWrap) assetsWrap.style.height=Math.min(620,Math.max(260,assets.length*34+75))+'px';
+  makeChart('savingAssets','#savingAssets',{type:'bar',data:{labels:assets.map(x=>x.asset),datasets:[{
+    label:'Nominales actuales',
+    data:assets.map(x=>x.nominal),
+    backgroundColor:assets.map(x=>x.nominal>=0?palette[0]:palette[6])
+  }]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{
+    label:ctx=>` Nominales actuales: ${nf.format(ctx.raw)}`,
+    afterLabel:ctx=>` Monto neto según movimientos: ${money(assets[ctx.dataIndex]?.ars||0)}`,
+    footer:()=> 'Monto histórico según movimientos; no es valuación de mercado.'
+  }}},scales:{x:{ticks:{callback:v=>Intl.NumberFormat('es-AR',{notation:'compact',maximumFractionDigits:1}).format(v)},title:{display:true,text:'Nominales netos'}},y:{ticks:{autoSkip:false}}}}});
+  renderSavingsTable(rows);
+}
+
+
+function savingOriginLabel(x){
+  return x.__local?'Local':x.__edited?'Excel · editado':'Excel';
+}
+function savingSortValue(x,key){
+  if(key==='date') return x.date||'';
+  if(key==='asset') return (x.asset||'').toLocaleLowerCase('es-AR');
+  if(key==='reason') return (x.reason||'').toLocaleLowerCase('es-AR');
+  if(key==='currency') return (x.currency||'').toLocaleLowerCase('es-AR');
+  if(key==='amount') return Number(x.amount||0);
+  if(key==='nominal') return Number(x.nominal||0);
+  if(key==='ars') return Number(arsValue(x)||0);
+  if(key==='origin') return savingOriginLabel(x).toLocaleLowerCase('es-AR');
+  return '';
+}
+function compareSavingRows(a,b,key){
+  const av=savingSortValue(a,key), bv=savingSortValue(b,key);
+  if(typeof av==='number' && typeof bv==='number') return av-bv;
+  return String(av).localeCompare(String(bv),'es-AR',{numeric:true,sensitivity:'base'});
+}
+function savingSortHeader(label,key){
+  const active=savingsSort.key===key;
+  const arrow=active?(savingsSort.direction==='asc'?'↑':'↓'):'↕';
+  const aria=active?(savingsSort.direction==='asc'?'ascendente':'descendente'):'sin ordenar';
+  return `<th class="sort-th"><button type="button" class="sort-btn ${active?'active':''}" data-saving-sort="${key}" aria-label="Ordenar ${label}. Orden actual: ${aria}"><span>${label}</span><span class="sort-arrow">${arrow}</span></button></th>`;
+}
+function renderSavingsTable(sourceRows){
+  const table=$('#savingTable'); if(!table)return;
+  const q=($('#savingSearch')?.value||'').trim().toLocaleLowerCase('es-AR');
+  let rows=[...(sourceRows||allSavings())];
+  if(q) rows=rows.filter(x=>(x.asset||'').toLocaleLowerCase('es-AR').includes(q));
+  rows.sort((a,b)=>{
+    const cmp=compareSavingRows(a,b,savingsSort.key);
+    return savingsSort.direction==='asc'?cmp:-cmp;
+  });
+  const count=$('#savingTableCount');
+  if(count) count.textContent=q?`${rows.length} movimiento${rows.length===1?'':'s'} · filtro: “${$('#savingSearch').value.trim()}”`:`${rows.length} movimientos · tocá un encabezado para ordenar`;
+  table.innerHTML='<thead><tr>'+[
+    savingSortHeader('Fecha','date'),
+    savingSortHeader('Activo','asset'),
+    savingSortHeader('Motivo','reason'),
+    savingSortHeader('Moneda','currency'),
+    savingSortHeader('Monto','amount'),
+    savingSortHeader('Nominales','nominal'),
+    savingSortHeader('ARS equivalente','ars'),
+    savingSortHeader('Origen','origin'),
+    '<th class="action-col">Acción</th>'
+  ].join('')+'</tr></thead><tbody>'+ 
+  (rows.length?rows.map(x=>`<tr><td>${x.date.split('-').reverse().join('/')}</td><td><b>${x.asset}</b></td><td>${x.reason||'—'}</td><td>${x.currency}</td><td class="num ${x.amount<0?'bad':'good'}">${money(x.amount,x.currency)}</td><td class="num">${nf.format(x.nominal||0)}</td><td class="num">${money(arsValue(x))}</td><td>${x.__local?'<span class="pill green">Local</span>':x.__edited?'<span class="pill edited">Excel · editado</span>':'Excel'}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-saving="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`).join(''):`<tr><td colspan="9"><div class="empty">No hay movimientos que coincidan con ese ticker.</div></td></tr>`)+
+  '</tbody>';
+}
+function setupSavingsTableInteractions(){
+  const fundToggle=$('#showFundLetters');
+  if(fundToggle && !fundToggle.dataset.bound){
+    fundToggle.dataset.bound='1';
+    fundToggle.checked=local.showFundLetters!==false;
+    fundToggle.addEventListener('change',()=>{local.showFundLetters=fundToggle.checked;saveLocal();renderSavings()});
+  }
+  const search=$('#savingSearch');
+  if(search && !search.dataset.bound){
+    search.dataset.bound='1';
+    search.addEventListener('input',()=>renderSavingsTable(allSavings()));
+  }
+  const table=$('#savingTable');
+  if(table && !table.dataset.bound){
+    table.dataset.bound='1';
+    table.addEventListener('click',e=>{
+      const sort=e.target.closest('[data-saving-sort]');
+      if(sort){
+        const key=sort.dataset.savingSort;
+        if(savingsSort.key===key) savingsSort.direction=savingsSort.direction==='asc'?'desc':'asc';
+        else { savingsSort.key=key; savingsSort.direction=(key==='date'||key==='amount'||key==='nominal'||key==='ars')?'desc':'asc'; }
+        renderSavingsTable(allSavings());
+        return;
+      }
+      const edit=e.target.closest('[data-edit-saving]');
+      if(edit){openSavingEdit(edit.dataset.editSaving);return}
+      const del=e.target.closest('[data-delete-key]');
+      if(del)requestDelete(del.dataset.deleteKey);
+    });
+  }
+}
+
+function giftBase(){
+  return {id:'base-juan-visa-santander',title:BASE.gifts.title,headers:[...BASE.gifts.headers],rows:BASE.gifts.rows.map(r=>({person:r.person,installments:[...r.installments]})),__base:true};
+}
+function allGifts(){ return [giftBase(), ...local.gifts]; }
+function giftPaidMap(giftId){ local.giftPaid[giftId] ||= {}; return local.giftPaid[giftId]; }
+function giftCellKey(rowIndex,colIndex){ return `${rowIndex}:${colIndex}`; }
+function isGiftPaid(giftId,rowIndex,colIndex){ return !!giftPaidMap(giftId)[giftCellKey(rowIndex,colIndex)]; }
+function toggleGiftCell(giftId,rowIndex,colIndex,target){
+  const map=giftPaidMap(giftId), key=giftCellKey(rowIndex,colIndex);
+  const next=target===undefined?!map[key]:!!target;
+  if(next) map[key]=true; else delete map[key];
+  saveLocal();
+}
+function getSelectedGift(){
+  const gifts=allGifts();
+  let g=gifts.find(x=>x.id===local.selectedGiftId);
+  if(!g){ g=gifts[0]; local.selectedGiftId=g.id; saveLocal(); }
+  return g;
+}
+function giftMonthHeaders(startMonth,count){
+  const names=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [y0,m0]=startMonth.split('-').map(Number); const out=[];
+  for(let i=0;i<count;i++){ const d=new Date(y0,m0-1+i,1); out.push(`Cuota ${i+1} (${names[d.getMonth()]})`); }
+  return out;
+}
+function renderGiftSelector(){
+  const sel=$('#giftSelect'); if(!sel)return;
+  const gifts=allGifts();
+  sel.innerHTML=gifts.map(g=>`<option value="${g.id}" ${g.id===local.selectedGiftId?'selected':''}>${g.title}</option>`).join('');
+}
+function renderGifts(){
+  renderGiftSelector();
+  const g=getSelectedGift(); const paid=giftPaidMap(g.id);
+  const perMonth=g.headers.map((_,i)=>g.rows.reduce((s,r)=>s+(r.installments[i]||0),0));
+  const paidPerMonth=g.headers.map((_,i)=>g.rows.reduce((s,r,ri)=>s+(isGiftPaid(g.id,ri,i)?(r.installments[i]||0):0),0));
+  const personTotals=g.rows.map((r,ri)=>({
+    person:r.person,
+    total:r.installments.reduce((a,b)=>a+b,0),
+    paid:r.installments.reduce((a,b,i)=>a+(isGiftPaid(g.id,ri,i)?b:0),0),
+    paidCount:r.installments.filter((_,i)=>isGiftPaid(g.id,ri,i)).length,
+    count:r.installments.length
+  }));
+  const grand=personTotals.reduce((s,x)=>s+x.total,0);
+  const paidGrand=personTotals.reduce((s,x)=>s+x.paid,0);
+  const pending=grand-paidGrand;
+  const paidCells=personTotals.reduce((s,x)=>s+x.paidCount,0), totalCells=personTotals.reduce((s,x)=>s+x.count,0);
+  $('#giftKpis').innerHTML=[
+    ['Total del regalo',money(grand),g.title],
+    ['Pagado',money(paidGrand),`${paidCells} de ${totalCells} cuotas individuales`],
+    ['Pendiente',money(pending),grand?`${nf.format(paidGrand/grand*100)}% cobrado`:'Sin monto'],
+    ['Integrantes',String(g.rows.length),`${g.headers.length} cuotas por persona`]
+  ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
+  makeChart('gift','#giftChart',{type:'bar',data:{labels:g.headers,datasets:[
+    {label:'Pagado',data:paidPerMonth,backgroundColor:palette[0],stack:'gift'},
+    {label:'Pendiente',data:perMonth.map((v,i)=>v-paidPerMonth[i]),backgroundColor:palette[2],stack:'gift'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  $('#giftPeople').innerHTML=personTotals.map(x=>{const pct=x.total?x.paid/x.total*100:0;return `<div class="gift-progress-line"><div class="who">${x.person}</div><div class="bar"><div class="progress"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:11px;margin-top:4px">${x.paidCount}/${x.count} cuotas</div></div><div class="amount">${money(x.paid)} / ${money(x.total)}</div></div>`}).join('');
+  $('#giftTitle').textContent=g.title;
+  $('#giftTableStatus').textContent=`${paidCells}/${totalCells} pagos marcados`;
+  $('#giftTable').innerHTML='<thead><tr><th>Persona</th>'+g.headers.map((h,i)=>`<th><button type="button" class="gift-head-btn" data-gift-col="${i}" title="Marcar/desmarcar esta cuota para todo el grupo">${h}</button></th>`).join('')+'<th>Total</th></tr></thead><tbody>'+
+  g.rows.map((r,ri)=>{const allPaid=r.installments.every((_,i)=>isGiftPaid(g.id,ri,i));return `<tr><td><button type="button" class="gift-person-btn ${allPaid?'all-paid':''}" data-gift-row="${ri}" title="Marcar/desmarcar todas las cuotas de ${r.person}">${r.person}</button></td>${r.installments.map((v,i)=>{const ok=isGiftPaid(g.id,ri,i);return `<td class="num"><button type="button" class="gift-pay-btn ${ok?'paid':''}" data-gift-cell="${ri}:${i}" aria-pressed="${ok}">${money(v)}${ok?'<span class="check">✓</span>':''}</button></td>`}).join('')}<td class="num"><b>${money(r.installments.reduce((a,b)=>a+b,0))}</b></td></tr>`}).join('')+'</tbody>';
+
+  $('#giftTable').onclick=e=>{
+    const cell=e.target.closest('[data-gift-cell]');
+    if(cell){const [ri,ci]=cell.dataset.giftCell.split(':').map(Number);toggleGiftCell(g.id,ri,ci);renderGifts();return;}
+    const row=e.target.closest('[data-gift-row]');
+    if(row){const ri=Number(row.dataset.giftRow);const target=!g.rows[ri].installments.every((_,i)=>isGiftPaid(g.id,ri,i));g.rows[ri].installments.forEach((_,i)=>toggleGiftCell(g.id,ri,i,target));renderGifts();return;}
+    const col=e.target.closest('[data-gift-col]');
+    if(col){const ci=Number(col.dataset.giftCol);const target=!g.rows.every((_,ri)=>isGiftPaid(g.id,ri,ci));g.rows.forEach((_,ri)=>toggleGiftCell(g.id,ri,ci,target));renderGifts();}
+  };
+}
+
+
+function adminMonths(){
+  const set=new Set(BASE.overview.map(x=>x.month));
+  Object.keys(local.fxOverrides||{}).forEach(m=>set.add(m));
+  [...local.variables,...local.savings].forEach(x=>{const m=ym(x.date);if(m)set.add(m)});
+  return [...set].sort();
+}
+function baseFixedSpecial(type,m){
+  const source=type==='Seguro'?BASE.insurance:BASE.patent;
+  const row=source.find(x=>ym(x.month)===m);
+  return row?Number(row.amount||0):null;
+}
+function fixedSpecialBaseKey(type,m){return type==='Seguro'?`fix|insurance|${m}`:`fix|patent|${m}`}
+function localFixedSpecialRows(){
+  return local.fixed.filter(x=>['Seguro','Patente'].includes(x.category)&&x.start&&ym(x.start)===ym(x.end||x.start));
+}
+function fixedSpecialAdminRows(){
+  const out=[];
+  for(const [type,source] of [['Seguro',BASE.insurance],['Patente',BASE.patent]]){
+    source.forEach(r=>{
+      const m=ym(r.month), key=fixedSpecialBaseKey(type,m), current=entryByKey(key);
+      out.push({type,month:m,key,original:Number(r.amount||0),amount:current?Number(current.amount||0):Number(r.amount||0),source:'Excel',deleted:isDeleted(key),edited:!!editPatch(key)});
+    });
+  }
+  localFixedSpecialRows().forEach(r=>{
+    const key=`fix|local|${r.__id}`;
+    out.push({type:r.category,month:ym(r.start),key,original:null,amount:Number(r.amount||0),source:'Local',deleted:isDeleted(key),edited:false});
+  });
+  return out.sort((a,b)=>a.month.localeCompare(b.month)||a.type.localeCompare(b.type,'es'));
+}
+function saveFixedSpecialAmount(key,amount){
+  const v=Number(amount);if(!(v>0))return;
+  const [type,source,id]=key.split('|');
+  if(type!=='fix')return;
+  if(source==='local'){
+    const row=local.fixed.find(x=>x.__id===id);if(row)row.amount=v;
+  }else{
+    const specialType=source==='insurance'?'Seguro':'Patente';
+    const original=baseFixedSpecial(specialType,id);
+    if(original!=null&&Math.abs(v-original)<1e-9){
+      if(local.edits[key]){delete local.edits[key].amount;if(!Object.keys(local.edits[key]).length)delete local.edits[key]}
+    }else{
+      local.edits[key]={...(local.edits[key]||{}),amount:v};
+    }
+    local.deletedItems=local.deletedItems.filter(x=>x!==key);
+  }
+  saveLocal();refreshDataViews();
+}
+function addOrUpdateFixedSpecial(type,m,amount){
+  const v=Number(amount);if(!['Seguro','Patente'].includes(type)||!m||!(v>0))return false;
+  const base=baseFixedSpecial(type,m);
+  if(base!=null){
+    const key=fixedSpecialBaseKey(type,m);
+    local.deletedItems=local.deletedItems.filter(x=>x!==key);
+    if(Math.abs(v-base)<1e-9){
+      if(local.edits[key]){delete local.edits[key].amount;if(!Object.keys(local.edits[key]).length)delete local.edits[key]}
+    }else local.edits[key]={...(local.edits[key]||{}),amount:v};
+  }else{
+    const existing=localFixedSpecialRows().find(x=>x.category===type&&ym(x.start)===m);
+    if(existing){existing.amount=v;local.deletedItems=local.deletedItems.filter(x=>x!==`fix|local|${existing.__id}`)}
+    else local.fixed.push({name:type,currency:'ARS',payment:type==='Seguro'?'Débito/seguro':'Transferencia',amount:v,category:type,installments:null,start:m+'-01',end:m+'-01',price_update:null,__local:true,__id:uid('fix')});
+  }
+  saveLocal();refreshDataViews();return true;
+}
+function resetFixedSpecial(key){
+  const [type,source,id]=key.split('|');
+  if(source==='insurance'||source==='patent'){
+    delete local.edits[key];local.deletedItems=local.deletedItems.filter(x=>x!==key);saveLocal();refreshDataViews();return;
+  }
+  if(source==='local'){
+    local.deletedItems=local.deletedItems.filter(x=>x!==key);saveLocal();refreshDataViews();
+  }
+}
+function renderAdmin(){
+  const body=$('#fxAdminBody'); if(!body)return;
+  body.innerHTML=adminMonths().map(m=>{const original=baseFxExact(m);const current=fxFor(m);const edited=local.fxOverrides[m]!=null;return `<tr><td><b>${monthLabel(m)}</b></td><td class="num">${original?nf.format(original):'—'}</td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-fx-month="${m}" value="${current}"></td><td class="action-col"><button type="button" class="icon-btn" data-reset-fx="${m}" ${edited?'':'disabled'}>↺ Original</button></td></tr>`}).join('');
+  const salaryBody=$('#salaryAdminBody');
+  if(salaryBody){
+    salaryBody.innerHTML=salaryMonths().map(m=>{const original=baseSalaryExact(m);const current=salaryFor(m);const edited=local.salaryOverrides[m]!=null;const resetLabel=original!=null?'↺ Original':'Eliminar carga';return `<tr><td><b>${monthLabel(m)}</b></td><td class="num">${original!=null?money(original):'—'}</td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-salary-month="${m}" value="${current??''}"></td><td class="action-col"><button type="button" class="icon-btn ${original==null&&edited?'danger':''}" data-reset-salary="${m}" ${edited?'':'disabled'}>${resetLabel}</button></td></tr>`}).join('')||'<tr><td colspan="4" class="empty">No hay sueldos cargados.</td></tr>';
+  }
+  const specialBody=$('#fixedSpecialAdminBody');
+  if(specialBody){
+    const activeType=local.fixedSpecialAdminTab||'Seguro';
+    $$('#fixedSpecialAdminTabs [data-special-admin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.specialAdminTab===activeType));
+    const monthLabelEl=$('#fixedSpecialMonthLabel');if(monthLabelEl)monthLabelEl.textContent=`Mes de ${activeType}`;
+    const rows=fixedSpecialAdminRows().filter(r=>r.type===activeType);
+    specialBody.innerHTML=rows.length?rows.map((r,i)=>{
+      const state=r.deleted?'<span class="pill red">Eliminado</span>':r.source==='Excel'?(r.edited?'<span class="pill edited">Excel · editado</span>':'<span class="pill">Excel</span>'):'<span class="pill green">Local</span>';
+      const value=r.deleted?'':r.amount;
+      const reset=r.source==='Excel'&&r.edited?`<button type="button" class="icon-btn" data-reset-fixed-special="${r.key}">↺ Original</button>`:'';
+      const restore=r.deleted?`<button type="button" class="icon-btn" data-restore-fixed-special="${r.key}">Restaurar</button>`:'';
+      const save=!r.deleted?`<button type="button" class="icon-btn" data-save-fixed-special="${i}">Guardar</button>`:'';
+      const del=!r.deleted?`<button type="button" class="icon-btn danger" data-delete-fixed-special="${r.key}">Eliminar</button>`:'';
+      return `<tr><td>${monthLabel(r.month)}</td><td class="num">${r.original!=null?money(r.original):'—'}</td><td class="num">${r.deleted?'—':`<input class="fx-input" type="number" min="0.01" step="0.01" data-fixed-special-key="${r.key}" value="${value}">`}</td><td>${state}</td><td class="action-col"><div class="action-buttons">${save}${reset}${restore}${del}</div></td></tr>`;
+    }).join(''):`<tr><td colspan="5" class="empty">No hay datos de ${activeType.toLowerCase()}.</td></tr>`;
+  }
+  const categoryBody=$('#categoryAdminBody');
+  if(categoryBody){
+    const usage=groupSum(allVariables(),x=>x.category,()=>1);
+    const cats=availableVariableCategories();
+    categoryBody.innerHTML=cats.length?cats.map((cat,i)=>`<tr><td><input type="text" data-category-input="${i}" value="${escHtml(cat)}" style="width:100%;min-width:210px"></td><td class="num">${usage[cat]||0}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-save-category="${i}">Guardar</button><button type="button" class="icon-btn danger" data-delete-category="${i}">Eliminar</button></div></td></tr>`).join(''):'<tr><td colspan="3" class="empty">No hay categorías disponibles.</td></tr>';
+  }
+  const deleted=$('#deletedAdminList');
+  if(!local.deletedItems.length) deleted.innerHTML='<div class="empty">No hay datos eliminados.</div>';
+  else deleted.innerHTML=local.deletedItems.map(key=>`<div class="deleted-item"><div class="meta"><b>${describeKey(key)}</b><small>${key.startsWith('var|')?'Gasto variable':key.startsWith('sav|')?'Ahorro':'Gasto fijo'} · oculto del dashboard</small></div><button type="button" class="btn" data-restore-key="${key}">Restaurar</button></div>`).join('');
+}
+function setupAdmin(){
+  const modal=$('#adminModal'), open=()=>{renderAdmin();modal.classList.add('show')}, close=()=>modal.classList.remove('show');
+  $('#adminBtn').addEventListener('click',open);$('#closeAdminModal').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  $('#fxAdminBody').addEventListener('click',e=>{const b=e.target.closest('[data-reset-fx]');if(!b)return;delete local.fxOverrides[b.dataset.resetFx];saveLocal();renderAdmin();refreshDataViews()});
+  $('#salaryAdminBody').addEventListener('click',e=>{const b=e.target.closest('[data-reset-salary]');if(!b)return;delete local.salaryOverrides[b.dataset.resetSalary];saveLocal();renderAdmin();refreshDataViews()});
+  $('#fixedSpecialAdminBody').addEventListener('click',e=>{
+    const save=e.target.closest('[data-save-fixed-special]');
+    const del=e.target.closest('[data-delete-fixed-special]');
+    const reset=e.target.closest('[data-reset-fixed-special]');
+    const restore=e.target.closest('[data-restore-fixed-special]');
+    if(save){const idx=Number(save.dataset.saveFixedSpecial),rows=fixedSpecialAdminRows().filter(r=>r.type===(local.fixedSpecialAdminTab||'Seguro')),r=rows[idx];if(!r)return;const inp=$(`[data-fixed-special-key="${r.key}"]`);saveFixedSpecialAmount(r.key,inp?.value);return;}
+    if(del){requestDelete(del.dataset.deleteFixedSpecial);return;}
+    if(reset){resetFixedSpecial(reset.dataset.resetFixedSpecial);return;}
+    if(restore){restoreDeleted(restore.dataset.restoreFixedSpecial);return;}
+  });
+  $('#fixedSpecialAdminTabs').addEventListener('click',e=>{const b=e.target.closest('[data-special-admin-tab]');if(!b)return;local.fixedSpecialAdminTab=b.dataset.specialAdminTab;saveLocal();renderAdmin();});
+  $('#addFixedSpecialBtn').addEventListener('click',()=>{
+    const type=local.fixedSpecialAdminTab||'Seguro',m=$('#fixedSpecialMonth').value,v=Number($('#fixedSpecialAmount').value);
+    if(addOrUpdateFixedSpecial(type,m,v)){$('#fixedSpecialAmount').value='';renderAdmin();}
+  });
+  $('#fixedSpecialAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addFixedSpecialBtn').click()}});
+  $('#deletedAdminList').addEventListener('click',e=>{const b=e.target.closest('[data-restore-key]');if(b)restoreDeleted(b.dataset.restoreKey)});
+  $('#categoryAdminBody').addEventListener('click',e=>{
+    const save=e.target.closest('[data-save-category]'),del=e.target.closest('[data-delete-category]');
+    if(!save&&!del)return;
+    const idx=Number((save||del).dataset[save?'saveCategory':'deleteCategory']);
+    const cats=availableVariableCategories(),oldName=cats[idx];if(oldName==null)return;
+    if(save){const inp=$(`[data-category-input="${idx}"]`);renameVariableCategory(oldName,inp?.value||'');}
+    if(del)deleteVariableCategory(oldName);
+  });
+  $('#addVarCategoryBtn').addEventListener('click',()=>{if(addVariableCategory($('#newVarCategory').value))$('#newVarCategory').value=''});
+  $('#newVarCategory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addVarCategoryBtn').click()}});
+  $('#saveFxBtn').addEventListener('click',()=>{
+    $$('[data-fx-month]').forEach(inp=>{const m=inp.dataset.fxMonth,v=Number(inp.value),orig=baseFxExact(m);if(!(v>0))return;if(orig!=null&&Math.abs(v-orig)<1e-9)delete local.fxOverrides[m];else local.fxOverrides[m]=v});
+    saveLocal();renderAdmin();refreshDataViews();
+  });
+  $('#addFxMonthBtn').addEventListener('click',()=>{const m=$('#fxNewMonth').value,v=Number($('#fxNewRate').value);if(!m||!(v>0))return;local.fxOverrides[m]=v;saveLocal();renderAdmin();refreshDataViews();$('#fxNewRate').value=''});
+  $('#saveSalaryBtn').addEventListener('click',()=>{
+    $$('[data-salary-month]').forEach(inp=>{const m=inp.dataset.salaryMonth,v=Number(inp.value),orig=baseSalaryExact(m);if(!(v>0))return;if(orig!=null&&Math.abs(v-orig)<1e-9)delete local.salaryOverrides[m];else local.salaryOverrides[m]=v});
+    saveLocal();renderAdmin();refreshDataViews();
+  });
+  $('#addSalaryMonthBtn').addEventListener('click',()=>{const m=$('#salaryNewMonth').value,v=Number($('#salaryNewAmount').value);if(!m||!(v>0))return;const orig=baseSalaryExact(m);if(orig!=null&&Math.abs(v-orig)<1e-9)delete local.salaryOverrides[m];else local.salaryOverrides[m]=v;saveLocal();renderAdmin();refreshDataViews();$('#salaryNewAmount').value=''});
+  $('#salaryNewAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addSalaryMonthBtn').click()}});
+}
+
+function applyTheme(theme){
+  const dark = theme === 'dark';
+  document.body.classList.toggle('dark', dark);
+  const btn = $('#themeBtn');
+  if(btn) btn.textContent = dark ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  if(window.Chart){ Chart.defaults.color = dark ? '#d7e2dc' : '#415149'; Chart.defaults.borderColor = dark ? '#2b3833' : '#e4ebe7'; }
+}
+function refreshVisiblePage(){
+  const active = document.querySelector('.page.active')?.id;
+  if(active==='resumen') renderSummary();
+  if(active==='fijos') renderFixed();
+  if(active==='variables') renderVariables();
+  if(active==='ahorros') renderSavings();
+  if(active==='regalos') renderGifts();
+}
+function setupTheme(){
+  const saved = localStorage.getItem('mateo_gastos_theme');
+  const preferred = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  applyTheme(preferred);
+  $('#themeBtn').addEventListener('click',()=>{
+    const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+    localStorage.setItem('mateo_gastos_theme', next);
+    applyTheme(next);
+    refreshVisiblePage();
+  });
+}
+
+function setupGiftModal(){
+  const modal=$('#giftModal'), open=()=>modal.classList.add('show'), close=()=>modal.classList.remove('show');
+  $('#addGiftBtn').addEventListener('click',open);
+  $('#closeGiftModal').addEventListener('click',close);
+  $('#cancelGiftModal').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  const now=new Date(); $('#gStartMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  $('#giftSelect').addEventListener('change',e=>{local.selectedGiftId=e.target.value;saveLocal();renderGifts();});
+  $('#giftForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const name=$('#gName').value.trim(), ref=$('#gReference').value.trim(), start=$('#gStartMonth').value;
+    const count=Math.max(1,Math.min(36,Number($('#gInstallments').value||1))), amount=Number($('#gAmount').value);
+    const people=$('#gPeople').value.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+    if(!name||!start||!amount||amount<=0||!people.length)return;
+    const id='gift-'+Date.now(); const title=ref?`${name} - ${ref}`:name;
+    const headers=giftMonthHeaders(start,count);
+    const rows=people.map(person=>({person,installments:Array(count).fill(amount)}));
+    local.gifts.push({id,title,headers,rows,startMonth:start,__local:true});
+    local.giftPaid[id]={}; local.selectedGiftId=id; saveLocal();
+    close(); e.target.reset(); $('#gInstallments').value=6; $('#gStartMonth').value=start; renderGifts();
+  });
+}
+
+let editingSavingKey=null;
+function resetSavingFormForAdd(){
+  editingSavingKey=null;
+  $('#savingModalTitle').textContent='Agregar movimiento de ahorro';
+  $('#savingSubmitBtn').textContent='Guardar movimiento';
+  $('#savingForm').reset();
+  const d=new Date();$('#sDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  $('#sDirection').value='add';
+  $('#sFundLetter').checked=false;
+}
+function openSavingEdit(key){
+  const x=entryByKey(key);if(!x)return;
+  editingSavingKey=key;
+  $('#savingModalTitle').textContent='Editar movimiento de ahorro';
+  $('#savingSubmitBtn').textContent='Guardar cambios';
+  $('#sDirection').value=Number(x.amount)<0?'subtract':'add';
+  $('#sDate').value=x.date||'';$('#sAsset').value=x.asset||'';$('#sCurrency').value=x.currency||'ARS';
+  $('#sAmount').value=Math.abs(Number(x.amount||0));$('#sReason').value=x.reason||'';$('#sNominal').value=Math.abs(Number(x.nominal||0))||'';
+  $('#sFundLetter').checked=isFundLetterMovement(x);
+  $('#savingModal').classList.add('show');
+}
+function setupSavingModal(){
+  const modal=$('#savingModal'), close=()=>modal.classList.remove('show');
+  $('#addSavingBtn').addEventListener('click',()=>{resetSavingFormForAdd();modal.classList.add('show')});
+  $('#closeSavingModal').addEventListener('click',close);$('#cancelSavingModal').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  resetSavingFormForAdd();
+  $('#sAsset').addEventListener('input',()=>{if(KNOWN_FUND_LETTERS.has(normalizedAsset($('#sAsset').value))) $('#sFundLetter').checked=true});
+  $('#savingForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const direction=$('#sDirection').value,date=$('#sDate').value,asset=$('#sAsset').value.trim(),currency=$('#sCurrency').value;
+    const rawAmount=Number($('#sAmount').value),reason=$('#sReason').value.trim(),nominal=Number($('#sNominal').value||0);
+    const isFundLetter=$('#sFundLetter').checked;
+    if(!date||!asset||!rawAmount||rawAmount<=0)return;
+    const amount=direction==='subtract'?-Math.abs(rawAmount):Math.abs(rawAmount);
+    const patch={date,asset,reason:reason||(direction==='subtract'?'Retiro / uso':'Ahorro'),currency,amount,nominal,isFundLetter};
+    if(editingSavingKey) updateEntry(editingSavingKey,patch);
+    else {local.savings.push({...patch,__local:true,__id:uid('sav')});saveLocal();refreshDataViews()}
+    close();resetSavingFormForAdd();
+  });
+}
+let editingExpenseKey=null;
+function setFixedClassOptions(category){
+  const sel=$('#fFixedClass');
+  sel.innerHTML='<option value="Cuotas">Cuotas</option><option value="Suscripción">Suscripción</option>';
+  if(category&&!['Cuotas','Suscripción'].includes(category))sel.insertAdjacentHTML('beforeend',`<option value="${category}">${category}</option>`);
+  if(category)sel.value=category;
+}
+let batchExpenseCount=0;
+function evaluateAmountExpression(raw){
+  const original=String(raw??'').trim();
+  if(!original)throw new Error('Ingresá un monto.');
+  const s=original.replace(/\s+/g,'').replace(/,/g,'.');
+  if(!/^[0-9+\-*/().]+$/.test(s))throw new Error('Usá solo números y + - * / ( ).');
+  let i=0;
+  function peek(){return s[i]}
+  function parseNumber(){
+    const m=s.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+    if(!m)throw new Error('Cuenta incompleta.');
+    i+=m[0].length;const n=Number(m[0]);
+    if(!Number.isFinite(n))throw new Error('Número inválido.');
+    return n;
+  }
+  function factor(){
+    if(peek()==='+'){i++;return factor()}
+    if(peek()==='-'){i++;return -factor()}
+    if(peek()==='('){i++;const v=expression();if(peek()!==')')throw new Error('Falta cerrar un paréntesis.');i++;return v}
+    return parseNumber();
+  }
+  function term(){
+    let v=factor();
+    while(peek()==='*'||peek()==='/'){
+      const op=s[i++],r=factor();
+      if(op==='/'&&r===0)throw new Error('No se puede dividir por cero.');
+      v=op==='*'?v*r:v/r;
+    }
+    return v;
+  }
+  function expression(){
+    let v=term();
+    while(peek()==='+'||peek()==='-'){
+      const op=s[i++],r=term();v=op==='+'?v+r:v-r;
+    }
+    return v;
+  }
+  const result=expression();
+  if(i!==s.length)throw new Error('Revisá la cuenta.');
+  if(!Number.isFinite(result))throw new Error('El resultado no es válido.');
+  return result;
+}
+function formatCalculatedAmount(n){
+  return String(Number(Number(n).toFixed(8)));
+}
+function applyExpenseAmountCalculation(showSuccess=true){
+  const input=$('#fAmount'),status=$('#fAmountCalcStatus');
+  try{
+    const raw=input.value;
+    const result=evaluateAmountExpression(raw);
+    input.value=formatCalculatedAmount(result);
+    status.classList.remove('error');
+    status.textContent=showSuccess&&/[+\-*/()]/.test(raw.replace(/^-/,''))?`✓ ${raw} = ${input.value}`:'';
+    return result;
+  }catch(err){
+    status.classList.add('error');status.textContent=err.message||'Cuenta inválida.';return null;
+  }
+}
+function clearExpenseAmountCalcStatus(){const s=$('#fAmountCalcStatus');if(s){s.textContent='';s.classList.remove('error')}}
+function updateBatchExpenseUi(){
+  const variable=$('#fType').value==='variable';
+  const canBatch=variable&&!editingExpenseKey;
+  $('#batchExpenseBox').classList.toggle('show',canBatch);
+  if(!canBatch)$('#fBatchMode').checked=false;
+  const active=canBatch&&$('#fBatchMode').checked;
+  $('#expenseSubmitBtn').textContent=editingExpenseKey?'Guardar cambios':(active?'Guardar y cargar otro':'Guardar gasto');
+  $('#batchExpenseStatus').textContent=active&&batchExpenseCount?`${batchExpenseCount} ${batchExpenseCount===1?'gasto cargado':'gastos cargados'}`:'';
+}
+function toggleExpenseFields(){
+  const fixed=$('#fType').value==='fixed';
+  $$('.fixed-only').forEach(x=>x.style.display=fixed?'flex':'none');
+  $('#fDate').required=!fixed||!editingExpenseKey;
+  updateBatchExpenseUi();
+}
+function resetExpenseFormForAdd(){
+  editingExpenseKey=null;batchExpenseCount=0;$('#expenseModalTitle').textContent='Agregar gasto';
+  $('#expenseForm').reset();$('#fType').disabled=false;$('#fDate').disabled=false;$('#fFixedClass').disabled=false;$('#fInstallments').disabled=false;setFixedClassOptions('Cuotas');
+  const d=new Date();$('#fDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  $('#fType').value='variable';$('#fBatchMode').checked=false;clearExpenseAmountCalcStatus();toggleExpenseFields();
+}
+function prepareNextBatchExpense(){
+  batchExpenseCount++;
+  $('#fName').value='';
+  $('#fAmount').value='';
+  $('#fCategory').value='';
+  clearExpenseAmountCalcStatus();
+  updateBatchExpenseUi();
+  requestAnimationFrame(()=>$('#fName').focus());
+}
+function openExpenseEdit(key){
+  const x=entryByKey(key);if(!x)return;
+  const [type,source]=key.split('|');if(type!=='var'&&type!=='fix')return;
+  editingExpenseKey=key;$('#expenseModalTitle').textContent=type==='var'?'Editar gasto variable':'Editar gasto fijo';$('#expenseSubmitBtn').textContent='Guardar cambios';
+  $('#fType').value=type==='var'?'variable':'fixed';$('#fType').disabled=true;
+  $('#fDate').value=type==='var'?(x.date||''):(x.start||'');
+  $('#fName').value=x.name||'';$('#fCurrency').value=x.currency||'ARS';$('#fAmount').value=Number(x.amount||0);clearExpenseAmountCalcStatus();if(x.payment&&![...$('#fPayment').options].some(o=>o.value===x.payment))$('#fPayment').insertAdjacentHTML('beforeend',`<option>${x.payment}</option>`);$('#fPayment').value=x.payment||BASE.lists.payments[0]||'';$('#fCategory').value=x.category||'';
+  if(type==='fix'){
+    setFixedClassOptions(x.category||'Cuotas');$('#fInstallments').value=x.installments||1;
+    const special=source==='insurance'||source==='patent';
+    $('#fFixedClass').disabled=special;$('#fInstallments').disabled=special;$('#fDate').disabled=special;
+  }else{$('#fFixedClass').disabled=false;$('#fInstallments').disabled=false;$('#fDate').disabled=false}
+  toggleExpenseFields();$('#modal').classList.add('show');
+}
+function setupModal(){
+  const modal=$('#modal'), close=()=>modal.classList.remove('show');
+  $('#addBtn').addEventListener('click',()=>{resetExpenseFormForAdd();modal.classList.add('show')});
+  $('#closeModal').addEventListener('click',close);$('#cancelModal').addEventListener('click',close);
+  modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  $('#fPayment').innerHTML=BASE.lists.payments.map(x=>`<option>${x}</option>`).join('');
+  syncVariableCategoryInputs();
+  $('#fType').addEventListener('change',toggleExpenseFields);$('#fBatchMode').addEventListener('change',updateBatchExpenseUi);
+  $('#fAmount').addEventListener('input',clearExpenseAmountCalcStatus);
+  $('#fAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=applyExpenseAmountCalculation(true);if(v!==null)$('#fAmount').select();}});
+  resetExpenseFormForAdd();
+  $('#expenseForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const type=$('#fType').value,date=$('#fDate').value,name=$('#fName').value.trim(),currency=$('#fCurrency').value,payment=$('#fPayment').value,category=$('#fCategory').value.trim();
+    const amount=applyExpenseAmountCalculation(false);
+    if(!name||amount===null||amount<=0){if(amount!==null&&amount<=0){const s=$('#fAmountCalcStatus');s.classList.add('error');s.textContent='El monto tiene que ser mayor a 0.';}return;}
+    const batchMode=!editingExpenseKey&&type==='variable'&&$('#fBatchMode').checked;
+    if(editingExpenseKey){
+      const [entryType,source]=editingExpenseKey.split('|');
+      if(entryType==='var'){
+        if(!date)return;updateEntry(editingExpenseKey,{date,name,currency,payment,amount,category:resolveVariableCategory(category||'Otros / No sé')});
+      }else{
+        if(source==='insurance'||source==='patent') updateEntry(editingExpenseKey,{name,currency,payment,amount});
+        else {const cls=$('#fFixedClass').value;if(cls==='Cuotas'&&!date)return;const installments=cls==='Cuotas'?Number($('#fInstallments').value||1):null,start=date?ym(date)+'-01':null,end=installments&&start?addMonths(ym(start),installments-1)+'-01':null;updateEntry(editingExpenseKey,{name,currency,payment,amount,category:cls,installments,start,end})}
+      }
+    }else if(type==='variable'){
+      if(!date)return;local.variables.push({date,name,currency,payment,amount,category:resolveVariableCategory(category||'Otros / No sé'),__local:true,__id:uid('var')});saveLocal();refreshDataViews();
+    }else{
+      if(!date)return;const cls=$('#fFixedClass').value,installments=cls==='Cuotas'?Number($('#fInstallments').value||1):null,m=ym(date),end=installments?addMonths(m,installments-1)+'-01':null;
+      local.fixed.push({name,currency,payment,amount,category:cls,installments,start:m+'-01',end,price_update:null,__local:true,__id:uid('fix')});saveLocal();refreshDataViews();
+    }
+    if(batchMode){prepareNextBatchExpense();return;}
+    close();$('#fFixedClass').disabled=false;$('#fInstallments').disabled=false;$('#fDate').disabled=false;resetExpenseFormForAdd();
+  });
+  $('#exportBtn').addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify(local,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cargas_locales_gastos.json';a.click();URL.revokeObjectURL(a.href);
+  });
+}
+setTabs(); setupTheme(); setupAdmin(); setupModal(); setupSavingModal(); setupGiftModal(); setupSavingsTableInteractions(); renderSummary(); setupCloud();
+</script>
+</body>
+</html>
