@@ -2,9 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1513">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gastos">
 <title>Mis Gastos | Dashboard Personal</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect rx=%2224%22 width=%22100%22 height=%22100%22 fill=%22%231b7f5c%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22>$</text></svg>">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -14,6 +19,8 @@
   --warning:#9a6a13; --shadow:0 8px 30px rgba(31,53,44,.07);
 }
 *{box-sizing:border-box}
+html,body{touch-action:manipulation;-webkit-text-size-adjust:100%}
+button,a,input,select,textarea{touch-action:manipulation}
 body{margin:0;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
 button,input,select{font:inherit}
 .app{max-width:1500px;margin:auto;padding:24px}
@@ -247,7 +254,7 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
   #variables .chart-wrap{height:245px}
   #variables .grid2{display:grid;grid-template-columns:1fr;gap:12px}
 
-  .mobile-fab{display:grid!important;position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:55;width:62px;height:62px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:38px;font-weight:300;line-height:1;place-items:center;box-shadow:0 12px 32px rgba(0,0,0,.32);cursor:pointer}
+  .mobile-fab{display:grid!important;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:55;width:76px;height:76px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-size:48px;font-weight:300;line-height:1;place-items:center;box-shadow:0 14px 38px rgba(0,0,0,.38);cursor:pointer}
   .mobile-fab:active{transform:scale(.96)}
   body.mobile-flow-open .mobile-fab,body:has(.modal-backdrop.show) .mobile-fab,body:has(.mobile-sheet-backdrop.show) .mobile-fab{display:none!important}
 
@@ -271,17 +278,19 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
   .mexp-expression{font-size:16px;color:var(--muted);min-height:24px;word-break:break-all;text-align:right}
   .mexp-amount{font-size:54px;line-height:1.05;font-weight:420;letter-spacing:-2px;max-width:100%;word-break:break-all;text-align:right}
   .mexp-currency{margin-top:9px;color:var(--muted);font-size:15px}
-  .mexp-keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:auto}
-  .mexp-key{min-height:62px;border:0;border-radius:13px;background:var(--panel);color:var(--text);font-size:23px;font-weight:650;cursor:pointer}.mexp-key:active{background:var(--panel2)}
-  .mexp-key.op{color:var(--accent);background:var(--panel2)}.mexp-key.next{background:var(--accent);color:#fff;font-size:30px}
+  .mexp-keypad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:auto}
+  .mexp-key{min-height:72px;border:0;border-radius:15px;background:var(--panel);color:var(--text);font-size:27px;font-weight:650;cursor:pointer}.mexp-key:active{background:var(--panel2)}
+  .mexp-key.op{color:var(--accent);background:var(--panel2)}.mexp-key.next{background:var(--accent);color:#fff;font-size:36px}
   .mexp-key.wide{grid-column:span 2}
   .mexp-details{display:grid;gap:12px;margin-top:10px}
   .mexp-amount-summary{padding:18px;border:1px solid var(--border);background:var(--panel);border-radius:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
   .mexp-amount-summary span{color:var(--muted);font-size:12px}.mexp-amount-summary strong{font-size:27px}
   .mexp-details .field{width:100%;min-width:0}.mexp-details input,.mexp-details select{width:100%;font-size:16px;min-height:49px}
-  .mexp-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mexp-two{display:grid;grid-template-columns:1fr;gap:12px}.mexp-two .field{min-width:0}.mexp-two input,.mexp-two select{min-width:0;max-width:100%;width:100%}
   .mexp-category-chips{display:flex;gap:7px;overflow:auto;padding:1px 0 5px;scrollbar-width:none}.mexp-category-chips::-webkit-scrollbar{display:none}
   .mexp-category-chip{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:9px 12px;white-space:nowrap;font-size:12px;font-weight:700;cursor:pointer}.mexp-category-chip.active{background:var(--accent2);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 38%,var(--border))}
+  .mexp-field-label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.mexp-field-label-row label{margin:0}.mexp-mini-action{border:0;background:transparent;color:var(--accent);padding:5px 4px;font-size:12px;font-weight:800;cursor:pointer}
+  .mexp-new-category{display:none;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:7px 0 8px}.mexp-new-category.show{display:grid}.mexp-new-category input{min-width:0}.mexp-new-category .btn{min-height:44px;padding:9px 12px}
   .mexp-save{margin-top:auto;padding-top:16px}.mexp-save .btn{width:100%;min-height:52px;font-size:16px}
   body.mobile-flow-open{overflow:hidden}
   #modal.show{z-index:100}
@@ -498,7 +507,12 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
     <div class="mexp-amount-summary"><span>Monto</span><strong id="mexpAmountSummary">$ 0</strong></div>
     <div class="mexp-details">
       <div class="field"><label>Descripción</label><input id="mexpName" autocomplete="off" placeholder="Ej. Supermercado, café, Uber..."></div>
-      <div class="field"><label>Categoría</label><div class="mexp-category-chips" id="mexpCategoryChips"></div><select id="mexpCategory"></select></div>
+      <div class="field">
+        <div class="mexp-field-label-row"><label>Categoría</label><button type="button" class="mexp-mini-action" id="mexpNewCategoryBtn">+ Nueva</button></div>
+        <div class="mexp-category-chips" id="mexpCategoryChips"></div>
+        <div class="mexp-new-category" id="mexpNewCategoryRow"><input id="mexpNewCategoryInput" autocomplete="off" placeholder="Nombre de la categoría"><button type="button" class="btn" id="mexpAddCategoryConfirm">Agregar</button></div>
+        <select id="mexpCategory"></select>
+      </div>
       <div class="field"><label>Medio de pago</label><select id="mexpPayment"></select></div>
       <div class="mexp-two"><div class="field"><label>Fecha</label><input type="date" id="mexpDate"></div><div class="field"><label>Moneda</label><select id="mexpCurrency"><option>ARS</option><option>USD</option></select></div></div>
     </div>
@@ -627,6 +641,16 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
     </div>
 
     <div class="admin-section">
+      <h3>Medios de pago</h3>
+      <p>Agregá o renombrá medios de pago disponibles. Al renombrar uno, los movimientos históricos pasan a mostrarse con el nombre nuevo. Si lo quitás, los gastos ya cargados no se borran.</p>
+      <div class="admin-table"><table><thead><tr><th>Medio de pago</th><th>Usos</th><th class="action-col">Acciones</th></tr></thead><tbody id="paymentAdminBody"></tbody></table></div>
+      <div class="admin-inline">
+        <div class="field" style="min-width:260px"><label>Nuevo medio de pago</label><input id="newPaymentMethod" placeholder="Ej. Efectivo"></div>
+        <button type="button" class="btn primary" id="addPaymentMethodBtn">+ Agregar medio</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
       <h3>Categorías de gastos variables</h3>
       <p>Agregá, renombrá o quitá categorías disponibles para nuevas cargas. Si renombrás una categoría, los gastos históricos se muestran automáticamente con el nombre nuevo. Si la eliminás, los gastos ya cargados conservan esa categoría.</p>
       <div class="admin-table"><table><thead><tr><th>Categoría</th><th>Movimientos</th><th class="action-col">Acciones</th></tr></thead><tbody id="categoryAdminBody"></tbody></table></div>
@@ -669,6 +693,8 @@ local.deletedItems ||= [];
 local.edits ||= {};
 local.variableCategories = Array.isArray(local.variableCategories) ? local.variableCategories : [...BASE.lists.variableCategories];
 local.categoryAliases = local.categoryAliases && typeof local.categoryAliases === 'object' && !Array.isArray(local.categoryAliases) ? local.categoryAliases : {};
+local.paymentMethods = Array.isArray(local.paymentMethods) ? local.paymentMethods : [...BASE.lists.payments];
+local.paymentAliases = local.paymentAliases && typeof local.paymentAliases === 'object' && !Array.isArray(local.paymentAliases) ? local.paymentAliases : {};
 local.salaryOverrides = local.salaryOverrides && typeof local.salaryOverrides === 'object' && !Array.isArray(local.salaryOverrides) ? local.salaryOverrides : {};
 local.fixedSpecialAdminTab = ['Seguro','Patente'].includes(local.fixedSpecialAdminTab) ? local.fixedSpecialAdminTab : 'Seguro';
 local.hb20FixedTab = ['Seguro','Patente'].includes(local.hb20FixedTab) ? local.hb20FixedTab : 'Seguro';
@@ -777,7 +803,7 @@ function syncVariableCategoryFilter(){
 function addVariableCategory(name){
   const value=String(name||'').trim();if(!value)return false;
   if(availableVariableCategories().some(x=>x.toLocaleLowerCase('es')===value.toLocaleLowerCase('es'))){alert('Esa categoría ya existe.');return false}
-  local.variableCategories.push(value);saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();renderAdmin();refreshDataViews();return true;
+  local.variableCategories.push(value);saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();syncPaymentInputs();syncPaymentFilter();renderAdmin();refreshDataViews();return true;
 }
 function renameVariableCategory(oldName,newName){
   const oldV=String(oldName||'').trim(),newV=String(newName||'').trim();if(!oldV||!newV||oldV===newV)return false;
@@ -798,17 +824,64 @@ function deleteVariableCategory(name){
   local.variableCategories=(local.variableCategories||[]).filter(x=>x!==value);saveLocal();syncVariableCategoryInputs();syncVariableCategoryFilter();renderAdmin();refreshDataViews();
 }
 
+function resolvePaymentMethod(payment){
+  let cur=String(payment||'').trim()||'Sin medio';
+  const seen=new Set();
+  while(local.paymentAliases?.[cur] && !seen.has(cur)){seen.add(cur);cur=String(local.paymentAliases[cur]).trim()||cur}
+  return cur;
+}
+function availablePaymentMethods(){
+  return [...new Set((local.paymentMethods||[]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function filterPaymentMethods(){
+  const used=[...allVariables(),...allFixed()].map(x=>x.payment).filter(Boolean);
+  return [...new Set([...availablePaymentMethods(),...used])].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function syncPaymentInputs(){
+  const methods=availablePaymentMethods();
+  const f=$('#fPayment'); if(f){const prev=f.value;f.innerHTML=methods.map(x=>`<option value="${escHtml(x)}">${escHtml(x)}</option>`).join('');if(methods.includes(prev))f.value=prev;}
+  const m=$('#mexpPayment'); if(m){const prev=m.value;m.innerHTML=methods.map(x=>`<option value="${escHtml(x)}">${escHtml(x)}</option>`).join('');if(methods.includes(prev))m.value=prev;}
+}
+function syncPaymentFilter(){
+  const sel=$('#varPayment');if(!sel)return;
+  const prev=sel.value,methods=filterPaymentMethods();
+  sel.innerHTML='<option value="">Todos</option>'+methods.map(x=>`<option value="${escHtml(x)}">${escHtml(x)}</option>`).join('');
+  sel.value=methods.includes(prev)?prev:'';
+}
+function addPaymentMethod(name){
+  const value=String(name||'').trim();if(!value)return false;
+  if(availablePaymentMethods().some(x=>x.toLocaleLowerCase('es')===value.toLocaleLowerCase('es'))){alert('Ese medio de pago ya existe.');return false}
+  local.paymentMethods.push(value);saveLocal();syncPaymentInputs();syncPaymentFilter();renderAdmin();refreshDataViews();return true;
+}
+function renamePaymentMethod(oldName,newName){
+  const oldV=String(oldName||'').trim(),newV=String(newName||'').trim();if(!oldV||!newV||oldV===newV)return false;
+  if(availablePaymentMethods().some(x=>x!==oldV&&x.toLocaleLowerCase('es')===newV.toLocaleLowerCase('es'))){alert('Ya existe otro medio de pago con ese nombre.');return false}
+  local.paymentMethods=(local.paymentMethods||[]).map(x=>x===oldV?newV:x);
+  const aliases={...(local.paymentAliases||{})};
+  const resolvesToOld=key=>{let cur=key,seen=new Set();while(aliases[cur]&&!seen.has(cur)){seen.add(cur);cur=aliases[cur]}return cur===oldV};
+  Object.keys(aliases).filter(resolvesToOld).forEach(k=>{if(k===newV)delete aliases[k];else aliases[k]=newV});
+  aliases[oldV]=newV;if(aliases[newV]===newV)delete aliases[newV];
+  local.paymentAliases=aliases;saveLocal();syncPaymentInputs();syncPaymentFilter();renderAdmin();refreshDataViews();return true;
+}
+function deletePaymentMethod(name){
+  const value=String(name||'').trim();if(!value)return;
+  const usage=[...allVariables(),...allFixed()].filter(x=>x.payment===value).length;
+  const msg=usage?`¿Quitar “${value}” de los medios disponibles?\n\nHay ${usage} registro${usage===1?'':'s'} histórico${usage===1?'':'s'} que lo usa. No se borrarán ni cambiarán.`:`¿Eliminar el medio de pago “${value}”?`;
+  if(!confirm(msg))return;
+  local.paymentMethods=(local.paymentMethods||[]).filter(x=>x!==value);saveLocal();syncPaymentInputs();syncPaymentFilter();renderAdmin();refreshDataViews();
+}
+
 function isDeleted(key){return local.deletedItems.includes(key)}
 function editPatch(key){return local.edits?.[key]||null}
 function withEdit(key,obj){const patch=editPatch(key);return patch?{...obj,...patch,__edited:true}:obj}
 function allVariables(){return [
   ...BASE.variableTransactions.map((x,i)=>{const key=`var|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
   ...local.variables.map(x=>({...x,__key:`var|local|${x.__id}`,__source:'Local',__local:true}))
-].filter(x=>!isDeleted(x.__key)).map(x=>({...x,category:resolveVariableCategory(x.category)}))}
+].filter(x=>!isDeleted(x.__key)).map(x=>({...x,category:resolveVariableCategory(x.category),payment:resolvePaymentMethod(x.payment)}))}
 function allFixed(){return [
   ...BASE.fixedMaster.map((x,i)=>{const key=`fix|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
   ...local.fixed.map(x=>({...x,__key:`fix|local|${x.__id}`,__source:'Local',__local:true}))
-].filter(x=>!isDeleted(x.__key))}
+].filter(x=>!isDeleted(x.__key)).map(x=>({...x,payment:x.payment?resolvePaymentMethod(x.payment):x.payment}))}
 function allSavings(){return [
   ...BASE.savingsTransactions.map((x,i)=>{const key=`sav|base|${i}`;return {...withEdit(key,x),__key:key,__source:'Excel'}}),
   ...local.savings.map(x=>({...x,__key:`sav|local|${x.__id}`,__source:'Local',__local:true}))
@@ -826,7 +899,9 @@ function entryByKey(key){
     const x=BASE.patent.find(r=>ym(r.month)===id); if(x) raw={name:'Patente',currency:'ARS',payment:'Transferencia',amount:x.amount,category:'Patente',start:id+'-01',end:id+'-01'};
   }
   if(!raw)return null;
-  return source==='local'?{...raw,__key:key,__source:'Local',__local:true}:{...withEdit(key,raw),__key:key,__source:'Excel'};
+  const out=source==='local'?{...raw,__key:key,__source:'Local',__local:true}:{...withEdit(key,raw),__key:key,__source:'Excel'};
+  if(out.payment)out.payment=resolvePaymentMethod(out.payment);
+  return out;
 }
 function updateEntry(key,patch){
   const [type,source,id]=key.split('|');
@@ -853,6 +928,8 @@ function normalizeCloudState(state){
   x.edits=x.edits&&typeof x.edits==='object'&&!Array.isArray(x.edits)?x.edits:{};
   x.variableCategories=Array.isArray(x.variableCategories)?x.variableCategories:[...BASE.lists.variableCategories];
   x.categoryAliases=x.categoryAliases&&typeof x.categoryAliases==='object'&&!Array.isArray(x.categoryAliases)?x.categoryAliases:{};
+  x.paymentMethods=Array.isArray(x.paymentMethods)?x.paymentMethods:[...BASE.lists.payments];
+  x.paymentAliases=x.paymentAliases&&typeof x.paymentAliases==='object'&&!Array.isArray(x.paymentAliases)?x.paymentAliases:{};
   x.salaryOverrides=x.salaryOverrides&&typeof x.salaryOverrides==='object'&&!Array.isArray(x.salaryOverrides)?x.salaryOverrides:{};
   x.fixedSpecialAdminTab=['Seguro','Patente'].includes(x.fixedSpecialAdminTab)?x.fixedSpecialAdminTab:'Seguro';
   x.hb20FixedTab=['Seguro','Patente'].includes(x.hb20FixedTab)?x.hb20FixedTab:'Seguro';
@@ -869,8 +946,9 @@ function localHasPersonalState(x=local){
     x.variables?.length||x.fixed?.length||x.savings?.length||x.gifts?.length||
     Object.keys(x.giftPaid||{}).length||Object.keys(x.fxOverrides||{}).length||
     (x.deletedItems||[]).length||Object.keys(x.edits||{}).length||
-    Object.keys(x.salaryOverrides||{}).length||Object.keys(x.categoryAliases||{}).length||
-    JSON.stringify(x.variableCategories||[])!==JSON.stringify(BASE.lists.variableCategories)
+    Object.keys(x.salaryOverrides||{}).length||Object.keys(x.categoryAliases||{}).length||Object.keys(x.paymentAliases||{}).length||
+    JSON.stringify(x.variableCategories||[])!==JSON.stringify(BASE.lists.variableCategories)||
+    JSON.stringify(x.paymentMethods||[])!==JSON.stringify(BASE.lists.payments)
   );
 }
 function setSyncStatus(text,type=''){
@@ -906,7 +984,7 @@ async function pushCloudState(){
 function saveLocal(){localStorage.setItem(storeKey,JSON.stringify(local));scheduleCloudSave()}
 function renderAllAfterCloudLoad(){
   refreshDataViews();
-  syncVariableCategoryInputs();syncVariableCategoryFilter();
+  syncVariableCategoryInputs();syncVariableCategoryFilter();syncPaymentInputs();syncPaymentFilter();
   if($('#adminModal')?.classList.contains('show'))renderAdmin();
 }
 async function pullCloudState({force=false}={}){
@@ -1113,9 +1191,9 @@ function fixedRowsFor(m){
     return baseFixedSpecial(x.category,m)==null;
   }).map(x=>({...x,source:x.__source||'Excel'}));
   const ins=BASE.insurance.find(x=>ym(x.month)===m); const insKey=`fix|insurance|${m}`;
-  if(ins&&!isDeleted(insKey)){const raw={name:'Seguro',currency:'ARS',payment:'Débito/seguro',amount:ins.amount,category:'Seguro',start:m+'-01',end:m+'-01'};rows.push({...withEdit(insKey,raw),source:'Excel',__key:insKey,__source:'Excel'});}
+  if(ins&&!isDeleted(insKey)){const raw={name:'Seguro',currency:'ARS',payment:resolvePaymentMethod('Débito/seguro'),amount:ins.amount,category:'Seguro',start:m+'-01',end:m+'-01'};rows.push({...withEdit(insKey,raw),source:'Excel',__key:insKey,__source:'Excel'});}
   const pat=BASE.patent.find(x=>ym(x.month)===m); const patKey=`fix|patent|${m}`;
-  if(pat&&!isDeleted(patKey)){const raw={name:'Patente',currency:'ARS',payment:'Transferencia',amount:pat.amount,category:'Patente',start:m+'-01',end:m+'-01'};rows.push({...withEdit(patKey,raw),source:'Excel',__key:patKey,__source:'Excel'});}
+  if(pat&&!isDeleted(patKey)){const raw={name:'Patente',currency:'ARS',payment:resolvePaymentMethod('Transferencia'),amount:pat.amount,category:'Patente',start:m+'-01',end:m+'-01'};rows.push({...withEdit(patKey,raw),source:'Excel',__key:patKey,__source:'Excel'});}
   return rows;
 }
 function adjustedFixedTotal(m){
@@ -1206,7 +1284,7 @@ function renderVariables(){
   ms.innerHTML=months.map((m,i)=>`<option value="${m}" ${(previous===m||(!previous&&i===0))?'selected':''}>${monthLabel(m)}</option>`).join('');
   if(!ms.dataset.bound){ms.dataset.bound=1;ms.addEventListener('change',renderVariables)}
   const cs=$('#varCategory'); if(!cs.dataset.bound){cs.dataset.bound='1';cs.addEventListener('change',renderVariables)} syncVariableCategoryFilter();
-  const ps=$('#varPayment'); if(ps.options.length===1){BASE.lists.payments.forEach(p=>ps.insertAdjacentHTML('beforeend',`<option>${p}</option>`));ps.addEventListener('change',renderVariables)}
+  const ps=$('#varPayment'); if(!ps.dataset.bound){ps.dataset.bound='1';ps.addEventListener('change',renderVariables)} syncPaymentFilter();
   if(!$('#varSearch').dataset.bound){$('#varSearch').dataset.bound=1;$('#varSearch').addEventListener('input',renderVariables)}
   const m=ms.value||months[0], c=cs.value, p=ps.value, q=$('#varSearch').value.toLowerCase();
   const rows=vars.filter(x=>ym(x.date)===m && (!c||x.category===c)&&(!p||x.payment===p)&&(!q||x.name.toLowerCase().includes(q)));
@@ -1537,6 +1615,12 @@ function renderAdmin(){
       return `<tr><td>${monthLabel(r.month)}</td><td class="num">${r.original!=null?money(r.original):'—'}</td><td class="num">${r.deleted?'—':`<input class="fx-input" type="number" min="0.01" step="0.01" data-fixed-special-key="${r.key}" value="${value}">`}</td><td>${state}</td><td class="action-col"><div class="action-buttons">${save}${reset}${restore}${del}</div></td></tr>`;
     }).join(''):`<tr><td colspan="5" class="empty">No hay datos de ${activeType.toLowerCase()}.</td></tr>`;
   }
+  const paymentBody=$('#paymentAdminBody');
+  if(paymentBody){
+    const usage=groupSum([...allVariables(),...allFixed()].filter(x=>x.payment),x=>x.payment,()=>1);
+    const methods=availablePaymentMethods();
+    paymentBody.innerHTML=methods.length?methods.map((method,i)=>`<tr><td><input type="text" data-payment-input="${i}" value="${escHtml(method)}" style="width:100%;min-width:210px"></td><td class="num">${usage[method]||0}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-save-payment="${i}">Guardar</button><button type="button" class="icon-btn danger" data-delete-payment="${i}">Eliminar</button></div></td></tr>`).join(''):'<tr><td colspan="3" class="empty">No hay medios de pago disponibles.</td></tr>';
+  }
   const categoryBody=$('#categoryAdminBody');
   if(categoryBody){
     const usage=groupSum(allVariables(),x=>x.category,()=>1);
@@ -1570,6 +1654,16 @@ function setupAdmin(){
   });
   $('#fixedSpecialAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addFixedSpecialBtn').click()}});
   $('#deletedAdminList').addEventListener('click',e=>{const b=e.target.closest('[data-restore-key]');if(b)restoreDeleted(b.dataset.restoreKey)});
+  $('#paymentAdminBody').addEventListener('click',e=>{
+    const save=e.target.closest('[data-save-payment]'),del=e.target.closest('[data-delete-payment]');
+    if(!save&&!del)return;
+    const idx=Number((save||del).dataset[save?'savePayment':'deletePayment']);
+    const methods=availablePaymentMethods(),oldName=methods[idx];if(oldName==null)return;
+    if(save){const inp=$(`[data-payment-input="${idx}"]`);renamePaymentMethod(oldName,inp?.value||'');}
+    if(del)deletePaymentMethod(oldName);
+  });
+  $('#addPaymentMethodBtn').addEventListener('click',()=>{if(addPaymentMethod($('#newPaymentMethod').value))$('#newPaymentMethod').value=''});
+  $('#newPaymentMethod').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addPaymentMethodBtn').click()}});
   $('#categoryAdminBody').addEventListener('click',e=>{
     const save=e.target.closest('[data-save-category]'),del=e.target.closest('[data-delete-category]');
     if(!save&&!del)return;
@@ -1794,7 +1888,7 @@ function openExpenseEdit(key){
   editingExpenseKey=key;$('#expenseModalTitle').textContent=type==='var'?'Editar gasto variable':'Editar gasto fijo';$('#expenseSubmitBtn').textContent='Guardar cambios';
   $('#fType').value=type==='var'?'variable':'fixed';$('#fType').disabled=true;
   $('#fDate').value=type==='var'?(x.date||''):(x.start||'');
-  $('#fName').value=x.name||'';$('#fCurrency').value=x.currency||'ARS';$('#fAmount').value=Number(x.amount||0);clearExpenseAmountCalcStatus();if(x.payment&&![...$('#fPayment').options].some(o=>o.value===x.payment))$('#fPayment').insertAdjacentHTML('beforeend',`<option>${x.payment}</option>`);$('#fPayment').value=x.payment||BASE.lists.payments[0]||'';$('#fCategory').value=x.category||'';
+  $('#fName').value=x.name||'';$('#fCurrency').value=x.currency||'ARS';$('#fAmount').value=Number(x.amount||0);clearExpenseAmountCalcStatus();if(x.payment&&![...$('#fPayment').options].some(o=>o.value===x.payment))$('#fPayment').insertAdjacentHTML('beforeend',`<option>${x.payment}</option>`);$('#fPayment').value=x.payment||availablePaymentMethods()[0]||'';$('#fCategory').value=x.category||'';
   if(type==='fix'){
     setFixedClassOptions(x.category||'Cuotas');$('#fInstallments').value=x.installments||1;
     const special=source==='insurance'||source==='patent';
@@ -1812,7 +1906,7 @@ function resetMobileExpenseFlow(){
   const flow=$('#mobileExpenseFlow');if(!flow)return;
   flow.dataset.expression='';flow.dataset.amount='';
   $('#mexpExpression').textContent='';$('#mexpAmountDisplay').textContent='0';$('#mexpAmountSummary').textContent='$ 0';
-  $('#mexpName').value='';$('#mexpCurrency').value='ARS';
+  $('#mexpName').value='';$('#mexpCurrency').value='ARS';const catRow=$('#mexpNewCategoryRow');if(catRow)catRow.classList.remove('show');const catInput=$('#mexpNewCategoryInput');if(catInput)catInput.value='';
   const d=new Date();$('#mexpDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   $('#mexpAmountStep').classList.add('active');$('#mexpDetailsStep').classList.remove('active');
 }
@@ -1823,7 +1917,7 @@ function openMobileExpenseFlow(){
   const topCats=[...cats].sort((a,b)=>(usage[b]||0)-(usage[a]||0)||a.localeCompare(b,'es')).slice(0,7);
   $('#mexpCategory').innerHTML=cats.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
   $('#mexpCategoryChips').innerHTML=topCats.map(c=>`<button type="button" class="mexp-category-chip" data-mexp-cat="${escHtml(c)}">${escHtml(c)}</button>`).join('');
-  $('#mexpPayment').innerHTML=BASE.lists.payments.map(p=>`<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+  $('#mexpPayment').innerHTML=availablePaymentMethods().map(p=>`<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
   $('#mobileExpenseFlow').classList.add('show');$('#mobileExpenseFlow').setAttribute('aria-hidden','false');document.body.classList.add('mobile-flow-open');
 }
 function closeMobileExpenseFlow(){const f=$('#mobileExpenseFlow');if(f){f.classList.remove('show');f.setAttribute('aria-hidden','true')}document.body.classList.remove('mobile-flow-open');const amount=$('#mexpAmountStep'),details=$('#mexpDetailsStep');if(amount)amount.classList.add('active');if(details)details.classList.remove('active')}
@@ -1837,6 +1931,7 @@ function setMobileExpenseExpression(expr){
 }
 function setupMobileExperience(){
   if(!$('#mobileMenuBtn'))return;
+  document.addEventListener('dblclick',e=>{if(isMobileDashboard())e.preventDefault()},{passive:false});
   /* Always start mobile on the dashboard, never inside the expense flow. */
   closeMobileExpenseFlow();
   const movementSheet=$('#mobileMovementsSheet');
@@ -1857,6 +1952,9 @@ function setupMobileExperience(){
   $('#mexpNext').addEventListener('click',()=>{let val;try{val=evaluateAmountExpression(mobileExpenseExpression());}catch(_){return}if(!(val>0))return;$('#mobileExpenseFlow').dataset.amount=String(val);$('#mexpAmountSummary').textContent=money(val,'ARS');$('#mexpAmountStep').classList.remove('active');$('#mexpDetailsStep').classList.add('active');requestAnimationFrame(()=>$('#mexpName').focus())});
   $('#mexpCategoryChips').addEventListener('click',e=>{const b=e.target.closest('[data-mexp-cat]');if(!b)return;$('#mexpCategory').value=b.dataset.mexpCat;$$('.mexp-category-chip').forEach(x=>x.classList.toggle('active',x===b))});
   $('#mexpCategory').addEventListener('change',()=>{$$('.mexp-category-chip').forEach(x=>x.classList.toggle('active',x.dataset.mexpCat===$('#mexpCategory').value))});
+  $('#mexpNewCategoryBtn').addEventListener('click',()=>{const row=$('#mexpNewCategoryRow');row.classList.toggle('show');if(row.classList.contains('show'))requestAnimationFrame(()=>$('#mexpNewCategoryInput').focus())});
+  $('#mexpAddCategoryConfirm').addEventListener('click',()=>{const value=$('#mexpNewCategoryInput').value.trim();if(!value)return;if(!addVariableCategory(value))return;const cats=availableVariableCategories(),usage=groupSum(allVariables(),x=>x.category,()=>1),topCats=[...cats].sort((a,b)=>(usage[b]||0)-(usage[a]||0)||a.localeCompare(b,'es')).slice(0,7);$('#mexpCategory').innerHTML=cats.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');$('#mexpCategory').value=value;$('#mexpCategoryChips').innerHTML=topCats.map(c=>`<button type="button" class="mexp-category-chip ${c===value?'active':''}" data-mexp-cat="${escHtml(c)}">${escHtml(c)}</button>`).join('');$('#mexpNewCategoryInput').value='';$('#mexpNewCategoryRow').classList.remove('show')});
+  $('#mexpNewCategoryInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#mexpAddCategoryConfirm').click()}});
   $('#mexpSave').addEventListener('click',()=>{const amount=Number($('#mobileExpenseFlow').dataset.amount||0),date=$('#mexpDate').value,name=$('#mexpName').value.trim(),currency=$('#mexpCurrency').value,payment=$('#mexpPayment').value,category=resolveVariableCategory($('#mexpCategory').value||'Otros / No sé');if(!(amount>0)||!date||!name)return;local.variables.push({date,name,currency,payment,amount,category,__local:true,__id:uid('var')});saveLocal();refreshDataViews();closeMobileExpenseFlow();activateDashboardTab('variables')});
   if(isMobileDashboard())activateDashboardTab('variables');
 }
@@ -1866,7 +1964,7 @@ function setupModal(){
   $('#addBtn').addEventListener('click',()=>{if(isMobileDashboard()){openMobileExpenseFlow();return}resetExpenseFormForAdd();modal.classList.add('show')});
   $('#closeModal').addEventListener('click',close);$('#cancelModal').addEventListener('click',close);
   modal.addEventListener('click',e=>{if(e.target===modal)close()});
-  $('#fPayment').innerHTML=BASE.lists.payments.map(x=>`<option>${x}</option>`).join('');
+  syncPaymentInputs();
   syncVariableCategoryInputs();
   $('#fType').addEventListener('change',toggleExpenseFields);$('#fBatchMode').addEventListener('change',updateBatchExpenseUi);
   $('#fAmount').addEventListener('input',clearExpenseAmountCalcStatus);
