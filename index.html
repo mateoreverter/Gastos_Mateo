@@ -19,9 +19,14 @@ button,input,select{font:inherit}
 .app{max-width:1500px;margin:auto;padding:24px}
 .topbar{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
 .title h1{margin:0;font-size:29px;letter-spacing:-.7px}.title p{margin:7px 0 0;color:var(--muted);font-size:14px}
-.actions{display:flex;gap:10px;flex-wrap:wrap}
-.btn{border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;color:var(--text);font-weight:650}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--border);background:var(--panel);padding:10px 14px;border-radius:12px;cursor:pointer;color:var(--text);font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn:hover{filter:brightness(.98)}
+.toolbar-icon-btn{width:42px;height:42px;padding:0;border-radius:12px;font-size:18px;line-height:1}
+.toolbar-icon-btn.small{width:40px;height:40px;font-size:17px}
+.toolbar-icon-btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,var(--border));background:color-mix(in srgb,var(--danger) 5%,var(--panel))}
+.toolbar-icon-btn.danger:hover{background:color-mix(in srgb,var(--danger) 10%,var(--panel))}
+.toolbar-icon-btn:focus-visible,.btn:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 60%, white);outline-offset:2px}
 .tabs{display:flex;gap:6px;overflow:auto;padding:6px;background:#eaf0ed;border-radius:14px;margin-bottom:18px}
 .tab{white-space:nowrap;border:0;background:transparent;padding:10px 14px;border-radius:10px;cursor:pointer;color:#53645c;font-weight:700}
 .tab.active{background:white;color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.05)}
@@ -177,7 +182,7 @@ body.dark .sort-btn:hover{background:var(--panel2)}
 .cloud-migration-banner{display:none;margin:0 0 16px;padding:13px 14px;border:1px solid #e1bd68;border-radius:12px;background:#fff7df;color:#6c5017;font-size:12px;line-height:1.45}
 .cloud-migration-banner.show{display:block}
 body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:#604f1f}
-@media(max-width:720px){.sync-pill{order:10;width:100%;justify-content:center}.cloud-small-btn{flex:1}.cloud-login-actions{flex-direction:column}.cloud-login-actions .btn{width:100%}}
+@media(max-width:720px){.sync-pill{order:10;width:100%;justify-content:center}.cloud-login-actions{flex-direction:column}.cloud-login-actions .btn{width:100%}}
 
 @media(max-width:980px){.grid-kpi{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.topbar{flex-direction:column}.actions{width:100%}}
 @media(max-width:600px){.app{padding:14px}.grid-kpi{grid-template-columns:1fr 1fr}.kpi .value{font-size:20px}.form-grid{grid-template-columns:1fr}.chart-wrap{height:260px}.field{min-width:100%;width:100%}}
@@ -206,13 +211,13 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
     </div>
     <div class="actions">
       <span class="sync-pill" id="syncPill" title="Estado de sincronización"><span class="sync-dot"></span><span id="syncStatus">Sin conectar</span></span>
-      <button class="btn cloud-small-btn" id="syncNowBtn" type="button">↻ Sincronizar</button>
-      <button class="btn cloud-small-btn" id="importStateBtn" type="button">Importar respaldo</button>
-      <button class="btn cloud-small-btn" id="logoutBtn" type="button">Salir</button>
-      <button class="btn" id="themeBtn">🌙 Modo oscuro</button>
-      <button class="btn" id="adminBtn">⚙ Administrar</button>
-      <button class="btn" id="exportBtn">Exportar cargas locales</button>
-      <button class="btn primary" id="addBtn">+ Agregar gasto</button>
+      <button class="btn toolbar-icon-btn small" id="syncNowBtn" type="button" title="Sincronizar ahora" aria-label="Sincronizar ahora">⟳</button>
+      <button class="btn toolbar-icon-btn small" id="importStateBtn" type="button" title="Importar respaldo" aria-label="Importar respaldo">⭱</button>
+      <button class="btn toolbar-icon-btn small" id="exportBtn" type="button" title="Exportar cargas locales" aria-label="Exportar cargas locales">⭳</button>
+      <button class="btn toolbar-icon-btn" id="themeBtn" type="button" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
+      <button class="btn toolbar-icon-btn" id="adminBtn" type="button" title="Administrar datos" aria-label="Administrar datos">⚙</button>
+      <button class="btn toolbar-icon-btn danger" id="logoutBtn" type="button" title="Cerrar sesión" aria-label="Cerrar sesión"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg></button>
+      <button class="btn primary" id="addBtn" title="Agregar gasto" aria-label="Agregar gasto">+ Agregar gasto</button>
     </div>
   </div>
 
@@ -1395,7 +1400,12 @@ function applyTheme(theme){
   const dark = theme === 'dark';
   document.body.classList.toggle('dark', dark);
   const btn = $('#themeBtn');
-  if(btn) btn.textContent = dark ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  if(btn){
+    btn.textContent = dark ? '☀️' : '🌙';
+    const label = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  }
   if(window.Chart){ Chart.defaults.color = dark ? '#d7e2dc' : '#415149'; Chart.defaults.borderColor = dark ? '#2b3833' : '#e4ebe7'; }
 }
 function refreshVisiblePage(){
