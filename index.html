@@ -411,7 +411,16 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
           <div class="chart-wrap sm"><canvas id="hb20FixedChart"></canvas></div>
         </div>
       </div>
-      <div class="card"><h3>Cuotas activas</h3><div class="desc">Avance de las compras financiadas del mes elegido.</div><div id="installmentsList"></div></div>
+      <div class="card">
+        <div class="hb20-head">
+          <div><h3 id="installmentsCardTitle">Cuotas activas</h3><div class="desc" id="installmentsCardDesc" style="margin-bottom:0">Avance de las compras financiadas del mes elegido.</div></div>
+          <div class="mini-tabs" id="installmentsViewTabs" aria-label="Elegir cuotas activas o vencidas">
+            <button type="button" class="mini-tab active" data-installments-view="active">Activas</button>
+            <button type="button" class="mini-tab" data-installments-view="expired">Vencidas</button>
+          </div>
+        </div>
+        <div id="installmentsList"></div>
+      </div>
     </div>
     <div class="table-card"><div class="table-head"><h3>Detalle del mes</h3><span id="fixedTableLabel"></span></div><div class="table-scroll"><table id="fixedTable"></table></div></div>
   </section>
@@ -1204,11 +1213,25 @@ function monthRange(start,end){
   return out;
 }
 function addMonths(m,n){const d=dparse(m+'-01');d.setMonth(d.getMonth()+n);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function fixedLastActiveMonth(item){
+  const s=ym(item.start);
+  if(item.category==='Cuotas' && s && Number(item.installments)>0){
+    return addMonths(s,Number(item.installments)-1);
+  }
+  const e=ym(item.end);
+  return e||null;
+}
 function fixedActive(item,m){
   if(item.category==='Suscripción' && !item.start) return true;
-  const s=ym(item.start); const e=ym(item.end);
+  const s=ym(item.start);
   if(!s) return item.category==='Suscripción';
-  return m>=s && (!e || m<=e);
+  const last=fixedLastActiveMonth(item);
+  return m>=s && (!last || m<=last);
+}
+function fixedExpiredBy(item,m){
+  if(item.category!=='Cuotas') return false;
+  const last=fixedLastActiveMonth(item);
+  return !!last && last<m;
 }
 function fixedRowsFor(m){
   const rows=allFixed().filter(x=>fixedActive(x,m)).filter(x=>{
@@ -1275,11 +1298,22 @@ function renderFixed(){
   const hbTabs=$('#hb20FixedTabs');if(hbTabs&&!hbTabs.dataset.bound){hbTabs.dataset.bound='1';hbTabs.addEventListener('click',e=>{const b=e.target.closest('[data-hb20-tab]');if(!b)return;local.hb20FixedTab=b.dataset.hb20Tab;saveLocal();renderFixed();});}
 
   const installs=cuotaRows.filter(x=>x.installments && x.start);
-  $('#installmentsList').innerHTML=installs.length?installs.map(x=>{const st=ym(x.start);const idx=monthRange(st,m).length;const p=Math.min(100,idx/Number(x.installments)*100);return `<div style="padding:9px 0;border-bottom:1px solid #edf1ef"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px"><b>${x.name}</b><span>${idx}/${x.installments}</span></div><div class="progress"><i style="width:${p}%"></i></div></div>`}).join(''):'<div class="empty">No hay cuotas activas en este mes.</div>';
+  const expiredInstallments=allFixed().filter(x=>x.installments && x.start && fixedExpiredBy(x,m)).sort((a,b)=>String(fixedLastActiveMonth(b)||'').localeCompare(String(fixedLastActiveMonth(a)||'')));
+  const installmentView=local.fixedInstallmentView==='expired'?'expired':'active';
+  $$('#installmentsViewTabs [data-installments-view]').forEach(b=>b.classList.toggle('active',b.dataset.installmentsView===installmentView));
+  const title=$('#installmentsCardTitle'),desc=$('#installmentsCardDesc');
+  if(title)title.textContent=installmentView==='expired'?'Cuotas vencidas':'Cuotas activas';
+  if(desc)desc.textContent=installmentView==='expired'?'Compras financiadas que ya terminaron antes del mes elegido.':'Avance de las compras financiadas del mes elegido.';
+  if(installmentView==='expired'){
+    $('#installmentsList').innerHTML=expiredInstallments.length?expiredInstallments.map(x=>{const last=fixedLastActiveMonth(x);return `<div style="padding:10px 0;border-bottom:1px solid #edf1ef"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:4px"><b>${x.name}</b><span>${x.installments}/${x.installments}</span></div><div style="display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px"><span>Venció ${monthLabel(last)}</span><span>${money(x.amount,x.currency)} · ${escHtml(x.payment||'Sin medio')}</span></div></div>`}).join(''):'<div class="empty">No hay cuotas vencidas antes de este mes.</div>';
+  }else{
+    $('#installmentsList').innerHTML=installs.length?installs.map(x=>{const st=ym(x.start);const idx=Math.min(Number(x.installments),monthRange(st,m).length);const p=Math.min(100,idx/Number(x.installments)*100);return `<div style="padding:9px 0;border-bottom:1px solid #edf1ef"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:6px"><b>${x.name}</b><span>${idx}/${x.installments}</span></div><div class="progress"><i style="width:${p}%"></i></div></div>`}).join(''):'<div class="empty">No hay cuotas activas en este mes.</div>';
+  }
+  const installmentTabs=$('#installmentsViewTabs');if(installmentTabs&&!installmentTabs.dataset.bound){installmentTabs.dataset.bound='1';installmentTabs.addEventListener('click',e=>{const b=e.target.closest('[data-installments-view]');if(!b)return;local.fixedInstallmentView=b.dataset.installmentsView;saveLocal();renderFixed();});}
 
   $('#fixedTableLabel').textContent=`${rows.length} conceptos · podés editar o eliminar`;
   $('#fixedTable').innerHTML='<thead><tr><th>Descripción</th><th>Categoría</th><th>Moneda</th><th>Medio de pago</th><th>Monto</th><th>Cuota</th><th>Origen</th><th class="action-col">Acción</th></tr></thead><tbody>'+ 
-  rows.map(x=>{let cu='—';if(x.installments&&x.start){const i=Math.max(1,monthRange(ym(x.start),m).length);cu=`${i}/${x.installments}`}return `<tr><td>${x.name}</td><td><span class="pill">${x.category||'—'}</span></td><td>${x.currency||'ARS'}</td><td>${paymentLabelHtml(x.payment)}</td><td class="num">${money(x.amount,x.currency)}</td><td>${cu}</td><td>${x.source==='Local'?'<span class="pill green">Local</span>':x.__edited?'<span class="pill edited">Excel · editado</span>':'Excel'}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`}).join('')+'</tbody>';
+  rows.map(x=>{let cu='—';if(x.installments&&x.start){const i=Math.min(Number(x.installments),Math.max(1,monthRange(ym(x.start),m).length));cu=`${i}/${x.installments}`}return `<tr><td>${x.name}</td><td><span class="pill">${x.category||'—'}</span></td><td>${x.currency||'ARS'}</td><td>${paymentLabelHtml(x.payment)}</td><td class="num">${money(x.amount,x.currency)}</td><td>${cu}</td><td>${x.source==='Local'?'<span class="pill green">Local</span>':x.__edited?'<span class="pill edited">Excel · editado</span>':'Excel'}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`}).join('')+'</tbody>';
   $('#fixedTable').onclick=e=>{const edit=e.target.closest('[data-edit-expense]');if(edit){openExpenseEdit(edit.dataset.editExpense);return}const b=e.target.closest('[data-delete-key]');if(b)requestDelete(b.dataset.deleteKey)};
 }
 
