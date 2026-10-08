@@ -288,6 +288,14 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
 }
 
 @media(max-width:980px){.grid-kpi{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.topbar{flex-direction:column}.actions{width:100%}}
+@media(max-width:700px){
+  /* Hidden mobile overlays stay hidden until explicitly opened. */
+  #mobileExpenseFlow.mobile-only{display:none!important}
+  #mobileExpenseFlow.mobile-only.show{display:block!important}
+  #mobileMovementsSheet.mobile-only{display:none!important}
+  #mobileMovementsSheet.mobile-only.show{display:flex!important}
+  #mobileAddExpenseFab.mobile-only{display:grid!important}
+}
 @media(max-width:600px){.app{padding:14px}.grid-kpi{grid-template-columns:1fr 1fr}.kpi .value{font-size:20px}.form-grid{grid-template-columns:1fr}.chart-wrap{height:260px}.field{min-width:100%;width:100%}}
 </style>
 </head>
@@ -1818,7 +1826,7 @@ function openMobileExpenseFlow(){
   $('#mexpPayment').innerHTML=BASE.lists.payments.map(p=>`<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
   $('#mobileExpenseFlow').classList.add('show');$('#mobileExpenseFlow').setAttribute('aria-hidden','false');document.body.classList.add('mobile-flow-open');
 }
-function closeMobileExpenseFlow(){const f=$('#mobileExpenseFlow');if(f){f.classList.remove('show');f.setAttribute('aria-hidden','true')}document.body.classList.remove('mobile-flow-open')}
+function closeMobileExpenseFlow(){const f=$('#mobileExpenseFlow');if(f){f.classList.remove('show');f.setAttribute('aria-hidden','true')}document.body.classList.remove('mobile-flow-open');const amount=$('#mexpAmountStep'),details=$('#mexpDetailsStep');if(amount)amount.classList.add('active');if(details)details.classList.remove('active')}
 function mobileExpenseExpression(){return $('#mobileExpenseFlow')?.dataset.expression||''}
 function setMobileExpenseExpression(expr){
   const flow=$('#mobileExpenseFlow');if(!flow)return;flow.dataset.expression=expr;
@@ -1829,6 +1837,10 @@ function setMobileExpenseExpression(expr){
 }
 function setupMobileExperience(){
   if(!$('#mobileMenuBtn'))return;
+  /* Always start mobile on the dashboard, never inside the expense flow. */
+  closeMobileExpenseFlow();
+  const movementSheet=$('#mobileMovementsSheet');
+  if(movementSheet){movementSheet.classList.remove('show');movementSheet.setAttribute('aria-hidden','true')}
   const menu=$('#mobileMenuPanel');
   $('#mobileMenuBtn').addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('show')});
   document.addEventListener('click',e=>{if(!e.target.closest('.mobile-menu-wrap'))menu.classList.remove('show')});
