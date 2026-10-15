@@ -133,6 +133,11 @@ body.dark .pill.edited{background:#233149;color:#aac4ff}
 .batch-option.show{display:flex}.batch-option .batch-copy{min-width:0}.batch-option b{display:block;font-size:13px}.batch-option small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}.batch-check{display:flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:750}.batch-check input{width:18px;height:18px;min-height:auto;accent-color:var(--accent)}
 .batch-status{font-size:12px;color:var(--accent);font-weight:750;margin-left:auto}.batch-status:empty{display:none}
 .chart-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.overview-series-controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 4px}
+.overview-series-toggle{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--border);border-radius:999px;background:var(--panel2);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;user-select:none}
+.overview-series-toggle input{width:15px;height:15px;min-height:0;margin:0;accent-color:var(--accent);cursor:pointer}
+.overview-series-toggle.off{opacity:.55}
+@media(max-width:700px){.overview-series-controls{gap:6px}.overview-series-toggle{padding:7px 9px;font-size:11px}}
 .chart-card-head .copy{min-width:0;flex:1}
 .check-toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:12px;font-weight:700;user-select:none}
 .check-toggle input[type="checkbox"]{width:17px;height:17px;min-height:0;padding:0;margin:0;accent-color:var(--accent);cursor:pointer}
@@ -381,7 +386,7 @@ body.dark .cloud-migration-banner{background:#2d260f;color:#f1d58f;border-color:
     <div class="status-row" id="statusRow"></div>
     <div class="grid-kpi" id="summaryKpis"></div>
     <div class="grid2">
-      <div class="card"><h3>Evolución mensual</h3><div class="desc">Sueldo, gastos fijos, variables y ahorro neto.</div><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
+      <div class="card"><h3>Evolución mensual</h3><div class="desc">Sueldo, gastos fijos, variables y ahorro neto. Elegí qué series querés ver.</div><div class="overview-series-controls" id="overviewSeriesControls"><label class="overview-series-toggle"><input type="checkbox" data-overview-series="salary" checked><span>Sueldo</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="fixed" checked><span>Gasto fijo</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="variable" checked><span>Gasto variable</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="savings" checked><span>Ahorro neto</span></label></div><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
       <div class="card"><h3>Gastos vs sueldo</h3><div class="desc">Meses con sueldo y gastos disponibles.</div><div class="chart-wrap"><canvas id="ratioChart"></canvas></div></div>
     </div>
     <div class="card" style="margin-bottom:14px"><h3>Composición de gastos</h3><div class="desc">Fijos + variables para los meses con información disponible.</div><div class="chart-wrap sm"><canvas id="mixChart"></canvas></div></div>
@@ -1149,7 +1154,28 @@ function setTabs(){
   }));
 }
 
+const overviewVisibilityKey='mateo_gastos_overview_visibility_v1';
+function overviewVisibility(){
+  const fallback={salary:true,fixed:true,variable:true,savings:true};
+  try{return {...fallback,...JSON.parse(localStorage.getItem(overviewVisibilityKey)||'{}')}}catch(_){return fallback}
+}
+function saveOverviewVisibility(state){
+  localStorage.setItem(overviewVisibilityKey,JSON.stringify(state));
+}
+function syncOverviewVisibilityControls(){
+  const state=overviewVisibility();
+  $$('#overviewSeriesControls [data-overview-series]').forEach(input=>{const key=input.dataset.overviewSeries;input.checked=state[key]!==false;input.closest('.overview-series-toggle')?.classList.toggle('off',!input.checked)});
+}
+function setupOverviewVisibilityControls(){
+  const box=$('#overviewSeriesControls');if(!box||box.dataset.bound)return;box.dataset.bound='1';
+  syncOverviewVisibilityControls();
+  box.addEventListener('change',e=>{const input=e.target.closest('[data-overview-series]');if(!input)return;const state=overviewVisibility();state[input.dataset.overviewSeries]=input.checked;saveOverviewVisibility(state);input.closest('.overview-series-toggle')?.classList.toggle('off',!input.checked);renderSummary()});
+}
+
 function renderSummary(){
+  setupOverviewVisibilityControls();
+  syncOverviewVisibilityControls();
+  const overviewVisible=overviewVisibility();
   const c=BASE.meta.completeness;
   const latestSalaryM=latestSalaryMonth();
   $('#statusRow').innerHTML=[
@@ -1184,10 +1210,10 @@ function renderSummary(){
   rows.sort((a,b)=>a.month.localeCompare(b.month));
   const labels=rows.map(x=>shortMonth(x.month));
   makeChart('overview','#overviewChart',{type:'line',data:{labels,datasets:[
-    {label:'Sueldo',data:rows.map(x=>x.salary),borderColor:palette[0],backgroundColor:palette[0],tension:.28,spanGaps:true},
-    {label:'Gasto fijo',data:rows.map(x=>x.fixed),borderColor:palette[3],backgroundColor:palette[3],tension:.28,spanGaps:true},
-    {label:'Gasto variable',data:rows.map(x=>x.variable),borderColor:palette[6],backgroundColor:palette[6],tension:.28,spanGaps:true,borderDash:[5,3]},
-    {label:'Ahorro neto',data:rows.map(x=>x.savings),borderColor:palette[5],backgroundColor:palette[5],tension:.28,spanGaps:true}
+    {label:'Sueldo',data:rows.map(x=>x.salary),borderColor:palette[0],backgroundColor:palette[0],tension:.28,spanGaps:true,hidden:overviewVisible.salary===false},
+    {label:'Gasto fijo',data:rows.map(x=>x.fixed),borderColor:palette[3],backgroundColor:palette[3],tension:.28,spanGaps:true,hidden:overviewVisible.fixed===false},
+    {label:'Gasto variable',data:rows.map(x=>x.variable),borderColor:palette[6],backgroundColor:palette[6],tension:.28,spanGaps:true,borderDash:[5,3],hidden:overviewVisible.variable===false},
+    {label:'Ahorro neto',data:rows.map(x=>x.savings),borderColor:palette[5],backgroundColor:palette[5],tension:.28,spanGaps:true,hidden:overviewVisible.savings===false}
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
   const ratioRows=rows.filter(x=>x.salary && (x.fixed||x.variable));
