@@ -47,7 +47,17 @@ button,input,select{font:inherit}
 .grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
 .card h3{margin:0 0 3px;font-size:15px}.card .desc{color:var(--muted);font-size:12px;margin-bottom:12px}
-.chart-wrap{position:relative;height:310px}.chart-wrap.sm{height:260px}.chart-wrap.scroll-y{height:310px;overflow-y:auto;overflow-x:hidden;padding-right:4px}.chart-wrap.scroll-y .chart-scroll-inner{position:relative;min-height:310px}.chart-wrap.scroll-y canvas{display:block}
+.chart-wrap{position:relative;height:310px}.chart-wrap.sm{height:260px}
+.top-expenses-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:2px}
+.top-expenses-head h3{margin:0 0 3px}
+.top-expenses-month{min-width:155px;min-height:36px;padding:7px 9px;font-size:12px}
+.top-expenses-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,220px);gap:14px;align-items:center;min-height:260px}
+.top-expenses-chart{position:relative;height:250px;min-width:0}
+.top-expenses-legend{display:grid;gap:9px;align-content:center;max-height:250px;overflow:auto;padding-right:3px}
+.top-expenses-legend-item{display:grid;grid-template-columns:13px minmax(0,1fr);gap:9px;align-items:center;font-size:12px;color:var(--text);min-width:0}
+.top-expenses-legend-swatch{width:13px;height:13px;border-radius:4px}
+.top-expenses-legend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:700px){.top-expenses-head{align-items:center}.top-expenses-month{min-width:132px}.top-expenses-layout{grid-template-columns:1fr;gap:8px}.top-expenses-chart{height:235px}.top-expenses-legend{grid-template-columns:1fr 1fr;max-height:none}.top-expenses-legend-item{font-size:11px}}.chart-wrap.scroll-y{height:310px;overflow-y:auto;overflow-x:hidden;padding-right:4px}.chart-wrap.scroll-y .chart-scroll-inner{position:relative;min-height:310px}.chart-wrap.scroll-y canvas{display:block}
 .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:end}.field{display:flex;flex-direction:column;gap:6px;min-width:160px}.field label{font-size:11px;color:var(--muted);font-weight:700}
 select,input{border:1px solid var(--border);border-radius:10px;background:white;padding:9px 10px;color:var(--text);min-height:40px}
 .table-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
@@ -395,7 +405,7 @@ body.dark .app-version{opacity:.58}
     </div>
     <div class="grid2">
       <div class="card"><h3>Composición de gastos</h3><div class="desc">Fijos + variables para los meses con información disponible.</div><div class="chart-wrap sm"><canvas id="mixChart"></canvas></div></div>
-      <div class="card"><h3>Top 10 gastos del mes</h3><div class="desc" id="topExpensesDesc">Mayores gastos fijos y variables del mes actual.</div><div class="chart-wrap sm"><canvas id="topExpensesChart"></canvas></div></div>
+      <div class="card"><div class="top-expenses-head"><div><h3>Top 10 gastos del mes</h3><div class="desc" id="topExpensesDesc">Mayores gastos fijos y variables del mes seleccionado.</div></div><select id="topExpensesMonth" class="top-expenses-month" aria-label="Mes del Top 10"></select></div><div class="top-expenses-layout"><div class="top-expenses-chart"><canvas id="topExpensesChart"></canvas></div><div class="top-expenses-legend" id="topExpensesLegend"></div></div></div>
     </div>
     <div class="table-card"><div class="table-head"><h3>Resumen mensual</h3><span>Datos consolidados del dashboard</span></div><div class="table-scroll"><table id="summaryTable"></table></div></div>
   </section>
@@ -503,7 +513,7 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v37.1126</footer>
+    <footer class="app-version" aria-label="Versión de la app">v38.1126</footer>
   </div>
 </div>
 
@@ -1279,13 +1289,28 @@ function renderSummary(){
     {label:'Gasto variable',data:mixRows.map(x=>x.variable||0),backgroundColor:palette[6],stack:'g'}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
-  const topMonth=currentMonthKey();
+  const topMonthSelect=$('#topExpensesMonth');
+  const topMonthSet=new Set([
+    ...BASE.overview.map(x=>x.month),
+    ...vars.map(x=>ym(x.date)).filter(Boolean),
+    ...fixedAvailableMonthsToCurrent()
+  ]);
+  const topMonths=[...topMonthSet].filter(Boolean).filter(mm=>mm<=currentMonthKey()).sort().reverse();
+  const previousTopMonth=topMonthSelect?.value;
+  const defaultTopMonth=(previousTopMonth&&topMonths.includes(previousTopMonth))?previousTopMonth:(topMonths.includes(currentMonthKey())?currentMonthKey():topMonths[0]);
+  if(topMonthSelect){
+    topMonthSelect.innerHTML=topMonths.map(mm=>`<option value="${mm}" ${mm===defaultTopMonth?'selected':''}>${monthLabel(mm)}</option>`).join('');
+    if(!topMonthSelect.dataset.bound){topMonthSelect.dataset.bound='1';topMonthSelect.addEventListener('change',renderSummary);}
+  }
+  const topMonth=topMonthSelect?.value||defaultTopMonth||currentMonthKey();
   const topVariable=vars.filter(x=>ym(x.date)===topMonth).map(x=>({name:x.name||x.category||'Gasto variable',type:'Variable',amount:arsValue(x)}));
   const topFixed=fixedRowsFor(topMonth).map(x=>({name:x.name||x.category||'Gasto fijo',type:'Fijo',amount:Number(x.amount||0)*(x.currency==='USD'?fxFor(topMonth):1)}));
   const topExpenses=[...topVariable,...topFixed].filter(x=>Number(x.amount)>0).sort((a,b)=>b.amount-a.amount).slice(0,10);
   const topExpenseColors=['#1b7f5c','#5f8790','#b98c54','#c85f63','#94677f','#6fa8c7','#3f6f58','#c9a24f','#7768a3','#4f8d8c'];
   const topDesc=$('#topExpensesDesc');if(topDesc)topDesc.textContent=`Mayores gastos fijos y variables de ${monthLabel(topMonth)}.`;
-  makeChart('topExpenses','#topExpensesChart',{type:'doughnut',data:{labels:topExpenses.map((x,i)=>`${i+1}. ${x.name}`),datasets:[{data:topExpenses.map(x=>x.amount),backgroundColor:topExpenses.map((_,i)=>topExpenseColors[i%topExpenseColors.length]),borderColor:document.body.classList.contains('dark')?'#151d1a':'#ffffff',borderWidth:2,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,pointStyle:'rectRounded'}},tooltip:{callbacks:{title:items=>items.length?topExpenses[items[0].dataIndex]?.name||'':'',label:ctx=>{const row=topExpenses[ctx.dataIndex];return `${row?.type||''}: ${money(ctx.raw)}`;}}}}}});
+  const topLegend=$('#topExpensesLegend');
+  if(topLegend)topLegend.innerHTML=topExpenses.length?topExpenses.map((x,i)=>`<div class="top-expenses-legend-item" title="${escHtml(x.name)}"><span class="top-expenses-legend-swatch" style="background:${topExpenseColors[i%topExpenseColors.length]}"></span><span class="top-expenses-legend-name">${escHtml(x.name)}</span></div>`).join(''):'<div class="empty">Sin gastos en este mes.</div>';
+  makeChart('topExpenses','#topExpensesChart',{type:'doughnut',data:{labels:topExpenses.map(x=>x.name),datasets:[{data:topExpenses.map(x=>x.amount),backgroundColor:topExpenses.map((_,i)=>topExpenseColors[i%topExpenseColors.length]),borderColor:document.body.classList.contains('dark')?'#151d1a':'#ffffff',borderWidth:2,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items.length?topExpenses[items[0].dataIndex]?.name||'':'',label:ctx=>{const row=topExpenses[ctx.dataIndex];return `${row?.type||''}: ${money(ctx.raw)}`;}}}}}});
 
   $('#summaryTable').innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Fijos</th><th>Variables</th><th>Ahorro neto</th><th>TC USD</th><th>Disponible*</th></tr></thead><tbody>'+ 
     rows.map(x=>{const disp=x.salary!=null ? x.salary-(x.fixed||0)-(x.variable||0):null;const changed=local.fxOverrides[x.month]!=null;return `<tr><td>${monthLabel(x.month)} ${x.variableEstimated?'<span class="pill warn">Variable estimado</span>':''}</td><td class="num">${money(x.salary)} ${local.salaryOverrides[x.month]!=null?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(x.fixed)}</td><td class="num">${money(x.variable)}</td><td class="num ${x.savings<0?'bad':'good'}">${money(x.savings)}</td><td class="num">${x.fx?nf.format(x.fx):'—'} ${changed?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(disp)}</td></tr>`}).join('')+
@@ -1318,15 +1343,44 @@ function fixedExpiredBy(item,m){
   const last=fixedLastActiveMonth(item);
   return !!last && last<m;
 }
+function fixedSpecialEvents(type){
+  const events=[];
+  const source=type==='Seguro'?BASE.insurance:BASE.patent;
+  source.forEach(r=>{
+    const month=ym(r.month),key=fixedSpecialBaseKey(type,month);
+    const edited=withEdit(key,{amount:Number(r.amount||0)});
+    events.push({type,month,key,amount:Number(edited.amount||0),deleted:isDeleted(key),priority:1});
+  });
+  localFixedSpecialRows().filter(r=>r.category===type).forEach(r=>{
+    const key=`fix|local|${r.__id}`;
+    events.push({type,month:ym(r.start),key,amount:Number(r.amount||0),deleted:isDeleted(key),priority:2});
+  });
+  return events.sort((a,b)=>a.month.localeCompare(b.month)||a.priority-b.priority);
+}
+function effectiveFixedSpecial(type,m){
+  const eligible=fixedSpecialEvents(type).filter(e=>e.month<=m);
+  if(!eligible.length)return null;
+  const latestMonth=eligible[eligible.length-1].month;
+  const sameMonth=eligible.filter(e=>e.month===latestMonth).sort((a,b)=>a.priority-b.priority);
+  const event=sameMonth[sameMonth.length-1];
+  if(!event||event.deleted||!(Number(event.amount)>0))return null;
+  return {...event,targetMonth:m,carried:event.month!==m};
+}
 function fixedRowsFor(m){
-  const rows=allFixed().filter(x=>fixedActive(x,m)).filter(x=>{
-    if(x.__source!=='Local'||!['Seguro','Patente'].includes(x.category))return true;
-    return baseFixedSpecial(x.category,m)==null;
-  }).map(x=>({...x,source:x.__source||'Excel'}));
-  const ins=BASE.insurance.find(x=>ym(x.month)===m); const insKey=`fix|insurance|${m}`;
-  if(ins&&!isDeleted(insKey)){const raw={name:'Seguro',currency:'ARS',payment:resolvePaymentMethod('Débito/seguro'),amount:ins.amount,category:'Seguro',start:m+'-01',end:m+'-01'};rows.push({...withEdit(insKey,raw),source:'Excel',__key:insKey,__source:'Excel'});}
-  const pat=BASE.patent.find(x=>ym(x.month)===m); const patKey=`fix|patent|${m}`;
-  if(pat&&!isDeleted(patKey)){const raw={name:'Patente',currency:'ARS',payment:resolvePaymentMethod('Transferencia'),amount:pat.amount,category:'Patente',start:m+'-01',end:m+'-01'};rows.push({...withEdit(patKey,raw),source:'Excel',__key:patKey,__source:'Excel'});}
+  const rows=allFixed()
+    .filter(x=>!['Seguro','Patente'].includes(x.category))
+    .filter(x=>fixedActive(x,m))
+    .map(x=>({...x,source:x.__source||'Base'}));
+  for(const type of ['Seguro','Patente']){
+    const eff=effectiveFixedSpecial(type,m);
+    if(!eff)continue;
+    const payment=type==='Seguro'?resolvePaymentMethod('Débito/seguro'):resolvePaymentMethod('Transferencia');
+    rows.push({
+      name:type,currency:'ARS',payment,amount:Number(eff.amount||0),category:type,
+      start:m+'-01',end:m+'-01',__key:eff.carried?`fix|carry|${type}|${m}`:eff.key,
+      __source:eff.carried?'Arrastre':'Base',__projectedSpecial:eff.carried,__sourceKey:eff.key,__sourceMonth:eff.month
+    });
+  }
   return rows;
 }
 function adjustedFixedTotal(m){
@@ -1395,8 +1449,7 @@ function renderFixed(){
 
   const regularRows=rows.filter(x=>!['Seguro','Patente'].includes(x.category));
   const cats=groupSum(regularRows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
-  const hb20Rows=fixedSpecialAdminRows().filter(r=>r.month===m&&!r.deleted&&['Seguro','Patente'].includes(r.type));
-  const hb20Amount=hb20Rows.reduce((sum,r)=>sum+Number(r.amount||0),0);
+  const hb20Amount=rows.filter(x=>['Seguro','Patente'].includes(x.category)).reduce((sum,r)=>sum+Number(r.amount||0)*(r.currency==='USD'?fxFor(m):1),0);
   if(hb20Amount>0)cats['Gasto fijo HB20']=hb20Amount;
   const fixedCategoryColorMap={'Suscripción':'#1b7f5c','Cuotas':'#5f8790','Gasto fijo HB20':'#b98c54'};
   makeChart('fixedCategory','#fixedCategory',{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(k=>fixedCategoryColorMap[k]||'#7f9189')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${money(ctx.raw)}`}}}}});
@@ -1425,7 +1478,7 @@ function renderFixed(){
 
   $('#fixedTableLabel').textContent=`${rows.length} conceptos · podés editar o eliminar`;
   $('#fixedTable').innerHTML='<thead><tr><th>Descripción</th><th>Categoría</th><th>Moneda</th><th>Medio de pago</th><th>Monto</th><th>Cuota</th><th class="action-col">Acción</th></tr></thead><tbody>'+ 
-  rows.map(x=>{let cu='—';if(x.installments&&x.start){const i=Math.min(Number(x.installments),Math.max(1,monthRange(ym(x.start),m).length));cu=`${i}/${x.installments}`}return `<tr><td>${x.name}</td><td><span class="pill">${x.category||'—'}</span></td><td>${x.currency||'ARS'}</td><td>${paymentLabelHtml(x.payment)}</td><td class="num">${money(x.amount,x.currency)}</td><td>${cu}</td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div></td></tr>`}).join('')+'</tbody>';
+  rows.map(x=>{let cu='—';if(x.installments&&x.start){const i=Math.min(Number(x.installments),Math.max(1,monthRange(ym(x.start),m).length));cu=`${i}/${x.installments}`}const actions=x.__projectedSpecial?`<span class="muted" title="Usa el último valor vigente; actualizalo desde Administrar">Valor vigente</span>`:`<div class="action-buttons"><button type="button" class="icon-btn" data-edit-expense="${x.__key}">Editar</button><button type="button" class="icon-btn danger" data-delete-key="${x.__key}">Eliminar</button></div>`;return `<tr><td>${x.name}</td><td><span class="pill">${x.category||'—'}</span></td><td>${x.currency||'ARS'}</td><td>${paymentLabelHtml(x.payment)}</td><td class="num">${money(x.amount,x.currency)}</td><td>${cu}</td><td class="action-col">${actions}</td></tr>`}).join('')+'</tbody>';
   $('#fixedTable').onclick=e=>{const edit=e.target.closest('[data-edit-expense]');if(edit){openExpenseEdit(edit.dataset.editExpense);return}const b=e.target.closest('[data-delete-key]');if(b)requestDelete(b.dataset.deleteKey)};
 }
 
