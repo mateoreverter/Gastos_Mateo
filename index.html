@@ -513,7 +513,7 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v38.1126</footer>
+    <footer class="app-version" aria-label="Versión de la app">v39.1126</footer>
   </div>
 </div>
 
@@ -1303,14 +1303,18 @@ function renderSummary(){
     if(!topMonthSelect.dataset.bound){topMonthSelect.dataset.bound='1';topMonthSelect.addEventListener('change',renderSummary);}
   }
   const topMonth=topMonthSelect?.value||defaultTopMonth||currentMonthKey();
-  const topVariable=vars.filter(x=>ym(x.date)===topMonth).map(x=>({name:x.name||x.category||'Gasto variable',type:'Variable',amount:arsValue(x)}));
+  const topVariableMap=groupSum(vars.filter(x=>ym(x.date)===topMonth),x=>x.category||'Gasto variable',arsValue);
+  const topVariable=Object.entries(topVariableMap).map(([name,amount])=>({name,type:'Variable',amount:Number(amount||0)}));
   const topFixed=fixedRowsFor(topMonth).map(x=>({name:x.name||x.category||'Gasto fijo',type:'Fijo',amount:Number(x.amount||0)*(x.currency==='USD'?fxFor(topMonth):1)}));
-  const topExpenses=[...topVariable,...topFixed].filter(x=>Number(x.amount)>0).sort((a,b)=>b.amount-a.amount).slice(0,10);
-  const topExpenseColors=['#1b7f5c','#5f8790','#b98c54','#c85f63','#94677f','#6fa8c7','#3f6f58','#c9a24f','#7768a3','#4f8d8c'];
-  const topDesc=$('#topExpensesDesc');if(topDesc)topDesc.textContent=`Mayores gastos fijos y variables de ${monthLabel(topMonth)}.`;
+  const allTopExpenses=[...topVariable,...topFixed].filter(x=>Number(x.amount)>0).sort((a,b)=>b.amount-a.amount);
+  const top10Expenses=allTopExpenses.slice(0,10);
+  const othersTotal=allTopExpenses.slice(10).reduce((s,x)=>s+Number(x.amount||0),0);
+  const topExpenses=othersTotal>0?[...top10Expenses,{name:'Otros',type:'Agrupado',amount:othersTotal}]:top10Expenses;
+  const topExpenseColors=['#1b7f5c','#5f8790','#b98c54','#c85f63','#94677f','#6fa8c7','#3f6f58','#c9a24f','#7768a3','#4f8d8c','#6d747a'];
+  const topDesc=$('#topExpensesDesc');if(topDesc)topDesc.textContent=`Mayores gastos fijos y variables de ${monthLabel(topMonth)}. El resto se agrupa como “Otros”.`;
   const topLegend=$('#topExpensesLegend');
   if(topLegend)topLegend.innerHTML=topExpenses.length?topExpenses.map((x,i)=>`<div class="top-expenses-legend-item" title="${escHtml(x.name)}"><span class="top-expenses-legend-swatch" style="background:${topExpenseColors[i%topExpenseColors.length]}"></span><span class="top-expenses-legend-name">${escHtml(x.name)}</span></div>`).join(''):'<div class="empty">Sin gastos en este mes.</div>';
-  makeChart('topExpenses','#topExpensesChart',{type:'doughnut',data:{labels:topExpenses.map(x=>x.name),datasets:[{data:topExpenses.map(x=>x.amount),backgroundColor:topExpenses.map((_,i)=>topExpenseColors[i%topExpenseColors.length]),borderColor:document.body.classList.contains('dark')?'#151d1a':'#ffffff',borderWidth:2,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items.length?topExpenses[items[0].dataIndex]?.name||'':'',label:ctx=>{const row=topExpenses[ctx.dataIndex];return `${row?.type||''}: ${money(ctx.raw)}`;}}}}}});
+  makeChart('topExpenses','#topExpensesChart',{type:'doughnut',data:{labels:topExpenses.map(x=>x.name),datasets:[{data:topExpenses.map(x=>x.amount),backgroundColor:topExpenses.map((_,i)=>topExpenseColors[i%topExpenseColors.length]),borderColor:document.body.classList.contains('dark')?'#151d1a':'#ffffff',borderWidth:2,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items.length?topExpenses[items[0].dataIndex]?.name||'':'',label:ctx=>{const row=topExpenses[ctx.dataIndex];if(!row) return money(ctx.raw);return `${row.type}: ${money(ctx.raw)}`;}}}}}});
 
   $('#summaryTable').innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Fijos</th><th>Variables</th><th>Ahorro neto</th><th>TC USD</th><th>Disponible*</th></tr></thead><tbody>'+ 
     rows.map(x=>{const disp=x.salary!=null ? x.salary-(x.fixed||0)-(x.variable||0):null;const changed=local.fxOverrides[x.month]!=null;return `<tr><td>${monthLabel(x.month)} ${x.variableEstimated?'<span class="pill warn">Variable estimado</span>':''}</td><td class="num">${money(x.salary)} ${local.salaryOverrides[x.month]!=null?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(x.fixed)}</td><td class="num">${money(x.variable)}</td><td class="num ${x.savings<0?'bad':'good'}">${money(x.savings)}</td><td class="num">${x.fx?nf.format(x.fx):'—'} ${changed?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(disp)}</td></tr>`}).join('')+
