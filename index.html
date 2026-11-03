@@ -404,7 +404,7 @@ body.dark .app-version{opacity:.58}
     <div class="grid-kpi" id="fixedKpis"></div>
     <div class="grid2">
       <div class="card"><h3>Evolución de gastos fijos</h3><div class="desc">Histórico cerrado + mes actual/sin cierre + compromisos futuros.</div><div class="chart-wrap"><canvas id="fixedEvolution"></canvas></div></div>
-      <div class="card"><h3>Composición del mes</h3><div class="desc">Suscripciones, cuotas, seguro y patente cuando corresponde.</div><div class="chart-wrap"><canvas id="fixedCategory"></canvas></div></div>
+      <div class="card"><h3>Composición del mes</h3><div class="desc">Suscripciones, cuotas y gasto fijo HB20 cuando corresponde.</div><div class="chart-wrap"><canvas id="fixedCategory"></canvas></div></div>
     </div>
     <div class="grid2">
       <div class="stack-col">
@@ -500,7 +500,7 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v35.1026</footer>
+    <footer class="app-version" aria-label="Versión de la app">v36.1126</footer>
   </div>
 </div>
 
@@ -1354,31 +1354,42 @@ function renderFixed(){
     ['Compromisos activos',String(rows.length),`TC ${nf.format(fxFor(m))} ARS/USD`]
   ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
 
-  const hist=BASE.fixedTotals.map(x=>({m:ym(x.month),v:adjustedFixedTotal(ym(x.month)),type:'Real'}));
-  const lastHistMonth=hist.length?hist[hist.length-1].m:null;
+  const histBase=BASE.fixedTotals.map(x=>({m:ym(x.month),v:adjustedFixedTotal(ym(x.month)),type:'Real'}));
+  const lastBaseHistMonth=histBase.length?histBase[histBase.length-1].m:null;
   const now=new Date();
   const currentMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const previousMonth=addMonths(currentMonth,-1);
   const nextMonth=addMonths(currentMonth,1);
-  const pendingStart=lastHistMonth?addMonths(lastHistMonth,1):currentMonth;
-  const pendingMonths=(pendingStart<=currentMonth)?monthRange(pendingStart,currentMonth):[];
-  const pending=pendingMonths.map(mm=>({m:mm,v:fixedRowsFor(mm).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(mm):1),0),type:'Pending'}));
+  // Any month that already ended becomes part of the adjusted historical line,
+  // even if the original embedded seed history stopped earlier.
+  const closedGapStart=lastBaseHistMonth?addMonths(lastBaseHistMonth,1):null;
+  const closedGapMonths=(closedGapStart&&closedGapStart<=previousMonth)?monthRange(closedGapStart,previousMonth):[];
+  const closedGap=closedGapMonths.map(mm=>({m:mm,v:fixedRowsFor(mm).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(mm):1),0),type:'Real'}));
+  const hist=[...histBase,...closedGap];
+  const currentValue=fixedRowsFor(currentMonth).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(currentMonth):1),0);
+  const pending=currentMonth<='2028-03'?[{m:currentMonth,v:currentValue,type:'Pending'}]:[];
   const projMonths=(nextMonth<='2028-03')?monthRange(nextMonth,'2028-03'):[];
   const proj=projMonths.map(mm=>({m:mm,v:fixedRowsFor(mm).reduce((s,x)=>s+Number(x.amount||0)*(x.currency==='USD'?fxFor(mm):1),0),type:'Compromisos'}));
   const comb=[...hist,...pending,...proj];
   const histData=comb.map(x=>x.type==='Real'?x.v:null);
   const pendingData=comb.map(x=>x.type==='Pending'?x.v:null);
   const projData=comb.map(x=>x.type==='Compromisos'?x.v:null);
-  if(lastHistMonth&&pending.length){const anchor=comb.findIndex(x=>x.m===lastHistMonth);if(anchor>=0)pendingData[anchor]=hist[hist.length-1].v;}
-  if(pending.length&&proj.length){const anchor=comb.findIndex(x=>x.m===currentMonth);if(anchor>=0)projData[anchor]=pending[pending.length-1].v;}
+  if(hist.length&&pending.length){const anchor=comb.findIndex(x=>x.m===hist[hist.length-1].m);if(anchor>=0)pendingData[anchor]=hist[hist.length-1].v;}
+  if(pending.length&&proj.length){const anchor=comb.findIndex(x=>x.m===currentMonth);if(anchor>=0)projData[anchor]=pending[0].v;}
   makeChart('fixedEvolution','#fixedEvolution',{type:'line',data:{labels:comb.map(x=>shortMonth(x.m)),datasets:[
     {label:'Histórico ajustado',data:histData,borderColor:palette[0],backgroundColor:palette[0],tension:.25,spanGaps:false},
     {label:'Mes actual / sin cierre',data:pendingData,borderColor:palette[3],backgroundColor:palette[3],tension:.25,spanGaps:false},
     {label:'Compromisos proyectados*',data:projData,borderColor:palette[3],backgroundColor:palette[3],borderDash:[5,4],tension:.25,spanGaps:false}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{afterBody:(items)=>{const idx=items?.[0]?.dataIndex;const row=comb[idx];if(row?.type==='Pending')return 'Mes actual o pasado todavía sin cierre histórico.';if(row?.type==='Compromisos')return '* Proyección solo con compromisos cargados.';return '';}}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{afterBody:(items)=>{const idx=items?.[0]?.dataIndex;const row=comb[idx];if(row?.type==='Pending')return 'Mes actual todavía sin cierre.';if(row?.type==='Compromisos')return '* Proyección solo con compromisos cargados.';return '';}}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
-  const cats=groupSum(rows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
-  const fixedCategoryColorMap={'Suscripción':'#1b7f5c','Cuotas':'#5f8790','Seguro':'#8896a3','Patente':'#b98c54'};
-  makeChart('fixedCategory','#fixedCategory',{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(k=>fixedCategoryColorMap[k]||'#7f9189')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  const rawCats=groupSum(rows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
+  const cats={};
+  Object.entries(rawCats).forEach(([category,value])=>{
+    const label=(category==='Seguro'||category==='Patente')?'Gasto fijo HB20':category;
+    cats[label]=(cats[label]||0)+Number(value||0);
+  });
+  const fixedCategoryColorMap={'Suscripción':'#1b7f5c','Cuotas':'#5f8790','Gasto fijo HB20':'#b98c54'};
+  makeChart('fixedCategory','#fixedCategory',{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(k=>fixedCategoryColorMap[k]||'#7f9189')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${money(ctx.raw)}`}}}}});
   const pays=groupSum(rows.filter(x=>!['Seguro','Patente'].includes(x.category)),x=>x.payment,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
   makeChart('fixedPayment','#fixedPayment',{type:'bar',data:{labels:Object.keys(pays),datasets:[{label:'Monto',data:Object.values(pays),backgroundColor:Object.keys(pays).map((name,i)=>paymentColor(name,i))}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}},y:{ticks:{padding:27}}}}});
 
