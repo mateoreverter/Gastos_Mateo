@@ -393,7 +393,10 @@ body.dark .app-version{opacity:.58}
       <div class="card"><h3>Evolución mensual</h3><div class="desc">Sueldo, gastos fijos, variables y ahorro neto. Elegí qué series querés ver.</div><div class="overview-series-controls" id="overviewSeriesControls"><label class="overview-series-toggle"><input type="checkbox" data-overview-series="salary" checked><span>Sueldo</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="fixed" checked><span>Gasto fijo</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="variable" checked><span>Gasto variable</span></label><label class="overview-series-toggle"><input type="checkbox" data-overview-series="savings" checked><span>Ahorro neto</span></label></div><div class="chart-wrap"><canvas id="overviewChart"></canvas></div></div>
       <div class="card"><h3>Gastos vs sueldo</h3><div class="desc">Meses con sueldo y gastos disponibles.</div><div class="chart-wrap"><canvas id="ratioChart"></canvas></div></div>
     </div>
-    <div class="card" style="margin-bottom:14px"><h3>Composición de gastos</h3><div class="desc">Fijos + variables para los meses con información disponible.</div><div class="chart-wrap sm"><canvas id="mixChart"></canvas></div></div>
+    <div class="grid2">
+      <div class="card"><h3>Composición de gastos</h3><div class="desc">Fijos + variables para los meses con información disponible.</div><div class="chart-wrap sm"><canvas id="mixChart"></canvas></div></div>
+      <div class="card"><h3>Top 10 gastos del mes</h3><div class="desc" id="topExpensesDesc">Mayores gastos fijos y variables del mes actual.</div><div class="chart-wrap sm"><canvas id="topExpensesChart"></canvas></div></div>
+    </div>
     <div class="table-card"><div class="table-head"><h3>Resumen mensual</h3><span>Datos consolidados del dashboard</span></div><div class="table-scroll"><table id="summaryTable"></table></div></div>
   </section>
 
@@ -500,7 +503,7 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v36.1126</footer>
+    <footer class="app-version" aria-label="Versión de la app">v37.1126</footer>
   </div>
 </div>
 
@@ -1276,6 +1279,14 @@ function renderSummary(){
     {label:'Gasto variable',data:mixRows.map(x=>x.variable||0),backgroundColor:palette[6],stack:'g'}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
+  const topMonth=currentMonthKey();
+  const topVariable=vars.filter(x=>ym(x.date)===topMonth).map(x=>({name:x.name||x.category||'Gasto variable',type:'Variable',amount:arsValue(x)}));
+  const topFixed=fixedRowsFor(topMonth).map(x=>({name:x.name||x.category||'Gasto fijo',type:'Fijo',amount:Number(x.amount||0)*(x.currency==='USD'?fxFor(topMonth):1)}));
+  const topExpenses=[...topVariable,...topFixed].filter(x=>Number(x.amount)>0).sort((a,b)=>b.amount-a.amount).slice(0,10);
+  const topExpenseColors=['#1b7f5c','#5f8790','#b98c54','#c85f63','#94677f','#6fa8c7','#3f6f58','#c9a24f','#7768a3','#4f8d8c'];
+  const topDesc=$('#topExpensesDesc');if(topDesc)topDesc.textContent=`Mayores gastos fijos y variables de ${monthLabel(topMonth)}.`;
+  makeChart('topExpenses','#topExpensesChart',{type:'doughnut',data:{labels:topExpenses.map((x,i)=>`${i+1}. ${x.name}`),datasets:[{data:topExpenses.map(x=>x.amount),backgroundColor:topExpenses.map((_,i)=>topExpenseColors[i%topExpenseColors.length]),borderColor:document.body.classList.contains('dark')?'#151d1a':'#ffffff',borderWidth:2,hoverOffset:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,pointStyle:'rectRounded'}},tooltip:{callbacks:{title:items=>items.length?topExpenses[items[0].dataIndex]?.name||'':'',label:ctx=>{const row=topExpenses[ctx.dataIndex];return `${row?.type||''}: ${money(ctx.raw)}`;}}}}}});
+
   $('#summaryTable').innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Fijos</th><th>Variables</th><th>Ahorro neto</th><th>TC USD</th><th>Disponible*</th></tr></thead><tbody>'+ 
     rows.map(x=>{const disp=x.salary!=null ? x.salary-(x.fixed||0)-(x.variable||0):null;const changed=local.fxOverrides[x.month]!=null;return `<tr><td>${monthLabel(x.month)} ${x.variableEstimated?'<span class="pill warn">Variable estimado</span>':''}</td><td class="num">${money(x.salary)} ${local.salaryOverrides[x.month]!=null?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(x.fixed)}</td><td class="num">${money(x.variable)}</td><td class="num ${x.savings<0?'bad':'good'}">${money(x.savings)}</td><td class="num">${x.fx?nf.format(x.fx):'—'} ${changed?'<span class="pill green">Editado</span>':''}</td><td class="num">${money(disp)}</td></tr>`}).join('')+
     '</tbody><tfoot><tr><td colspan="7" class="muted" style="padding:12px">* Disponible = sueldo - gastos fijos - gastos variables. No descuenta el ahorro como gasto.</td></tr></tfoot>';
@@ -1382,12 +1393,11 @@ function renderFixed(){
     {label:'Compromisos proyectados*',data:projData,borderColor:palette[3],backgroundColor:palette[3],borderDash:[5,4],tension:.25,spanGaps:false}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{afterBody:(items)=>{const idx=items?.[0]?.dataIndex;const row=comb[idx];if(row?.type==='Pending')return 'Mes actual todavía sin cierre.';if(row?.type==='Compromisos')return '* Proyección solo con compromisos cargados.';return '';}}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
-  const rawCats=groupSum(rows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
-  const cats={};
-  Object.entries(rawCats).forEach(([category,value])=>{
-    const label=(category==='Seguro'||category==='Patente')?'Gasto fijo HB20':category;
-    cats[label]=(cats[label]||0)+Number(value||0);
-  });
+  const regularRows=rows.filter(x=>!['Seguro','Patente'].includes(x.category));
+  const cats=groupSum(regularRows,x=>x.category,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
+  const hb20Rows=fixedSpecialAdminRows().filter(r=>r.month===m&&!r.deleted&&['Seguro','Patente'].includes(r.type));
+  const hb20Amount=hb20Rows.reduce((sum,r)=>sum+Number(r.amount||0),0);
+  if(hb20Amount>0)cats['Gasto fijo HB20']=hb20Amount;
   const fixedCategoryColorMap={'Suscripción':'#1b7f5c','Cuotas':'#5f8790','Gasto fijo HB20':'#b98c54'};
   makeChart('fixedCategory','#fixedCategory',{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:Object.keys(cats).map(k=>fixedCategoryColorMap[k]||'#7f9189')}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${money(ctx.raw)}`}}}}});
   const pays=groupSum(rows.filter(x=>!['Seguro','Patente'].includes(x.category)),x=>x.payment,x=>Number(x.amount||0)*(x.currency==='USD'?fxFor(m):1));
