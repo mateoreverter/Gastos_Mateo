@@ -57,6 +57,11 @@ button,input,select{font:inherit}
 .top-expenses-legend-item{display:grid;grid-template-columns:13px minmax(0,1fr);gap:9px;align-items:center;font-size:12px;color:var(--text);min-width:0}
 .top-expenses-legend-swatch{width:13px;height:13px;border-radius:4px}
 .top-expenses-legend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.income-source{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:11px 13px;border:1px solid var(--border);border-radius:13px;background:var(--panel);color:var(--muted);font-size:11px}
+.income-source strong{color:var(--text)}
+.income-status{display:inline-flex;align-items:center;gap:6px}.income-status-dot{width:7px;height:7px;border-radius:50%;background:#9ca6a1}.income-status.ok .income-status-dot{background:var(--accent)}.income-status.loading .income-status-dot{background:#d3a13e}.income-status.error .income-status-dot{background:var(--danger)}
+.income-table-note{font-size:11px;color:var(--muted)}
 @media(max-width:700px){.top-expenses-head{align-items:center}.top-expenses-month{min-width:132px}.top-expenses-layout{grid-template-columns:1fr;gap:8px}.top-expenses-chart{height:235px}.top-expenses-legend{grid-template-columns:1fr 1fr;max-height:none}.top-expenses-legend-item{font-size:11px}}.chart-wrap.scroll-y{height:310px;overflow-y:auto;overflow-x:hidden;padding-right:4px}.chart-wrap.scroll-y .chart-scroll-inner{position:relative;min-height:310px}.chart-wrap.scroll-y canvas{display:block}
 .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:end}.field{display:flex;flex-direction:column;gap:6px;min-width:160px}.field label{font-size:11px;color:var(--muted);font-weight:700}
 select,input{border:1px solid var(--border);border-radius:10px;background:white;padding:9px 10px;color:var(--text);min-height:40px}
@@ -239,7 +244,7 @@ body.dark .app-version{opacity:.58}
   .tabs{gap:3px;padding:5px;margin-bottom:16px;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
   .tab{padding:10px 13px;font-size:13px}
-  .tab[data-tab="variables"]{order:-5}.tab[data-tab="resumen"]{order:-4}.tab[data-tab="fijos"]{order:-3}.tab[data-tab="ahorros"]{order:-2}.tab[data-tab="regalos"]{order:-1}
+  .tab[data-tab="variables"]{order:-6}.tab[data-tab="resumen"]{order:-5}.tab[data-tab="ingresos"]{order:-4}.tab[data-tab="fijos"]{order:-3}.tab[data-tab="ahorros"]{order:-2}.tab[data-tab="regalos"]{order:-1}
   #resumen .notice{display:none!important}
   #resumen .status-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
   #resumen .status-row .chip{display:flex;align-items:center;min-height:43px;padding:9px 11px;white-space:normal;line-height:1.25}
@@ -390,6 +395,7 @@ body.dark .app-version{opacity:.58}
 
   <div class="tabs">
     <button class="tab active" data-tab="resumen">Resumen</button>
+    <button class="tab" data-tab="ingresos">Ingresos</button>
     <button class="tab" data-tab="fijos">Gastos fijos</button>
     <button class="tab" data-tab="variables">Gastos variables</button>
     <button class="tab" data-tab="ahorros">Ahorros</button>
@@ -409,6 +415,20 @@ body.dark .app-version{opacity:.58}
       <div class="card"><div class="top-expenses-head"><div><h3>Top 10 gastos del mes</h3><div class="desc" id="topExpensesDesc">Mayores gastos fijos y variables del mes seleccionado.</div></div><select id="topExpensesMonth" class="top-expenses-month" aria-label="Mes del Top 10"></select></div><div class="top-expenses-layout"><div class="top-expenses-chart"><canvas id="topExpensesChart"></canvas></div><div class="top-expenses-legend" id="topExpensesLegend"></div></div></div>
     </div>
     <div class="table-card"><div class="table-head"><h3>Resumen mensual</h3><span>Datos consolidados del dashboard</span></div><div class="table-scroll"><table id="summaryTable"></table></div></div>
+  </section>
+
+  <section class="page" id="ingresos">
+    <div class="income-source">
+      <div><strong>Ingresos y poder adquisitivo</strong><br>El IPC se actualiza automáticamente desde fuentes públicas y prioriza los últimos datos oficiales confirmados por INDEC.</div>
+      <div class="income-status" id="incomeInflationStatus"><span class="income-status-dot"></span><span id="incomeInflationStatusText">Cargando IPC…</span></div>
+    </div>
+    <div class="grid-kpi" id="incomeKpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Evolución del sueldo</h3><div class="desc">Sueldo nominal mes a mes.</div><div class="chart-wrap"><canvas id="incomeSalaryChart"></canvas></div></div>
+      <div class="card"><h3>Aumento vs inflación</h3><div class="desc">Variación mensual del sueldo comparada con el IPC nacional.</div><div class="chart-wrap"><canvas id="incomeRaiseInflationChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px"><h3>Poder adquisitivo del sueldo</h3><div class="desc">Compara tu sueldo real, su promedio móvil de 3 meses y el sueldo que necesitarías para conservar el poder de compra del primer mes de la serie.</div><div class="chart-wrap"><canvas id="incomeRealChart"></canvas></div></div>
+    <div class="table-card"><div class="table-head"><div><h3>Detalle mensual de ingresos</h3><span class="income-table-note">Los meses sin IPC publicado quedan pendientes.</span></div><span id="incomeTableStatus"></span></div><div class="table-scroll"><table id="incomeTable"></table></div></div>
   </section>
 
   <section class="page" id="fijos">
@@ -514,7 +534,7 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v40.1126</footer>
+    <footer class="app-version" aria-label="Versión de la app">v43.1126</footer>
   </div>
 </div>
 
@@ -808,6 +828,110 @@ function salaryFor(m){const raw=local.salaryOverrides?.[m];if(raw!==undefined&&r
 function salaryMonths(){const set=new Set(BASE.overview.filter(x=>x.salary!=null).map(x=>x.month));Object.keys(local.salaryOverrides||{}).forEach(m=>set.add(m));return [...set].filter(m=>salaryFor(m)!=null).sort()}
 function latestSalaryMonth(){const ms=salaryMonths();return ms.length?ms[ms.length-1]:null}
 function currentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+const IPC_SERIES_ID='148.3_INIVELNAL_DICI_M_26';
+const IPC_API_URL=`https://apis.datos.gob.ar/series/api/series/?ids=${IPC_SERIES_ID}&last=180&format=json`;
+const IPC_MONTHLY_API_URL='https://api.argentinadatos.com/v1/finanzas/indices/inflacion';
+const IPC_CACHE_KEY='mateo_gastos_ipc_cache_v2';
+// Últimos datos oficiales confirmados por INDEC. Tienen prioridad sobre cualquier API
+// secundaria que todavía no haya actualizado su serie.
+const IPC_OFFICIAL_OVERRIDES={
+  '2026-09':1.9,
+  '2026-10':2.2
+};
+let ipcState={rows:[],monthlyRows:[],loading:false,error:null,fetchedAt:null};
+function loadIpcCache(){
+  try{
+    const c=JSON.parse(localStorage.getItem(IPC_CACHE_KEY)||'null');
+    if(c){
+      if(Array.isArray(c.rows))ipcState.rows=c.rows;
+      if(Array.isArray(c.monthlyRows))ipcState.monthlyRows=c.monthlyRows;
+      ipcState.fetchedAt=c.fetchedAt||null;
+    }
+  }catch(_){ }
+}
+function ipcRows(){return (ipcState.rows||[]).map(r=>[String(r[0]||'').slice(0,10),Number(r[1])]).filter(r=>r[0]&&Number.isFinite(r[1])).sort((a,b)=>a[0].localeCompare(b[0]))}
+function ipcMonthlyApiMap(){
+  const out={};
+  (ipcState.monthlyRows||[]).forEach(r=>{
+    const rawDate=String(r?.fecha||r?.date||'');
+    const m=rawDate.slice(0,7);
+    const v=Number(r?.valor??r?.value);
+    if(/^\d{4}-\d{2}$/.test(m)&&Number.isFinite(v))out[m]=v;
+  });
+  return out;
+}
+function rawIpcIndexMap(){return Object.fromEntries(ipcRows().map(([d,v])=>[d.slice(0,7),v]))}
+function ipcInflationMap(){
+  const rows=ipcRows(),out={};
+  for(let i=1;i<rows.length;i++){
+    const m=rows[i][0].slice(0,7),prev=rows[i-1][1],cur=rows[i][1];
+    if(prev>0&&cur>0)out[m]=(cur/prev-1)*100;
+  }
+  Object.assign(out,ipcMonthlyApiMap());
+  Object.assign(out,IPC_OFFICIAL_OVERRIDES);
+  return out;
+}
+function ipcIndexMap(){
+  const raw=rawIpcIndexMap(),inflation=ipcInflationMap();
+  const months=[...new Set([...Object.keys(raw),...Object.keys(inflation)])].sort();
+  const out={};
+  let prevMonth=null;
+  for(const m of months){
+    if(prevMonth&&out[prevMonth]>0&&Number.isFinite(inflation[m])){
+      out[m]=out[prevMonth]*(1+inflation[m]/100);
+    }else if(Number(raw[m])>0){
+      out[m]=Number(raw[m]);
+    }
+    if(Number(out[m])>0)prevMonth=m;
+  }
+  return out;
+}
+function latestIpcMonth(){
+  const months=[...new Set([...Object.keys(ipcInflationMap()),...Object.keys(rawIpcIndexMap())])].sort();
+  return months.length?months[months.length-1]:null;
+}
+function setIncomeInflationStatus(){
+  const el=$('#incomeInflationStatus'),txt=$('#incomeInflationStatusText');if(!el||!txt)return;
+  el.classList.remove('ok','loading','error');
+  if(ipcState.loading){el.classList.add('loading');txt.textContent='Actualizando IPC…';return}
+  const last=latestIpcMonth();
+  if(ipcState.error&&!last){el.classList.add('error');txt.textContent='IPC no disponible';return}
+  if(last){
+    el.classList.add(ipcState.error?'error':'ok');
+    const verified=IPC_OFFICIAL_OVERRIDES[last]!=null?' · oficial INDEC':'';
+    txt.textContent=`IPC hasta ${monthLabel(last)}${verified}${ipcState.error?' · usando caché':''}`;
+    return;
+  }
+  txt.textContent='Sin datos de IPC';
+}
+async function refreshInflationData(force=false){
+  if(ipcState.loading)return;
+  const age=ipcState.fetchedAt?Date.now()-new Date(ipcState.fetchedAt).getTime():Infinity;
+  if(!force&&(ipcState.rows.length||ipcState.monthlyRows.length)&&age<6*60*60*1000){setIncomeInflationStatus();return}
+  ipcState.loading=true;ipcState.error=null;setIncomeInflationStatus();
+  let anySuccess=false;const errors=[];
+  try{
+    const [monthlyResult,indexResult]=await Promise.allSettled([
+      fetch(IPC_MONTHLY_API_URL,{cache:'no-store'}).then(async res=>{if(!res.ok)throw new Error(`IPC mensual HTTP ${res.status}`);return res.json()}),
+      fetch(IPC_API_URL,{cache:'no-store'}).then(async res=>{if(!res.ok)throw new Error(`Series HTTP ${res.status}`);return res.json()})
+    ]);
+    if(monthlyResult.status==='fulfilled'&&Array.isArray(monthlyResult.value)){
+      ipcState.monthlyRows=monthlyResult.value;anySuccess=true;
+    }else if(monthlyResult.status==='rejected')errors.push(monthlyResult.reason?.message||'IPC mensual');
+    if(indexResult.status==='fulfilled'){
+      const rows=Array.isArray(indexResult.value?.data)?indexResult.value.data:[];
+      if(rows.length){ipcState.rows=rows;anySuccess=true}else errors.push('Series sin datos');
+    }else errors.push(indexResult.reason?.message||'Series');
+    if(anySuccess){
+      ipcState.fetchedAt=new Date().toISOString();
+      localStorage.setItem(IPC_CACHE_KEY,JSON.stringify({rows:ipcState.rows,monthlyRows:ipcState.monthlyRows,fetchedAt:ipcState.fetchedAt}));
+    }
+    if(!anySuccess)throw new Error(errors.join(' · ')||'No se pudo actualizar IPC');
+    if(errors.length)ipcState.error=errors.join(' · ');
+  }catch(err){ipcState.error=err?.message||'Error de IPC';console.warn('IPC API',err)}
+  finally{ipcState.loading=false;setIncomeInflationStatus();if(document.querySelector('.page.active')?.id==='ingresos')renderIncome()}
+}
+loadIpcCache();
 function fixedAvailableMonthsToCurrent(){
   const nowM=currentMonthKey();
   const candidates=new Set(BASE.fixedTotals.map(x=>ym(x.month)));
@@ -1207,6 +1331,7 @@ function restoreDeleted(key){local.deletedItems=local.deletedItems.filter(x=>x!=
 function refreshDataViews(){
   renderSummary();
   const active=document.querySelector('.page.active')?.id;
+  if(active==='ingresos')renderIncome();
   if(active==='fijos')renderFixed();
   if(active==='variables')renderVariables();
   if(active==='ahorros')renderSavings();
@@ -1219,6 +1344,7 @@ function setTabs(){
     $$('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active');
     $$('.page').forEach(x=>x.classList.remove('active')); $('#'+b.dataset.tab).classList.add('active');
     if(b.dataset.tab==='resumen') renderSummary();
+    if(b.dataset.tab==='ingresos') renderIncome();
     if(b.dataset.tab==='fijos') renderFixed();
     if(b.dataset.tab==='variables') renderVariables();
     if(b.dataset.tab==='ahorros') renderSavings();
@@ -1242,6 +1368,58 @@ function setupOverviewVisibilityControls(){
   const box=$('#overviewSeriesControls');if(!box||box.dataset.bound)return;box.dataset.bound='1';
   syncOverviewVisibilityControls();
   box.addEventListener('change',e=>{const input=e.target.closest('[data-overview-series]');if(!input)return;const state=overviewVisibility();state[input.dataset.overviewSeries]=input.checked;saveOverviewVisibility(state);input.closest('.overview-series-toggle')?.classList.toggle('off',!input.checked);renderSummary()});
+}
+
+function renderIncome(){
+  setIncomeInflationStatus();
+  const months=salaryMonths();
+  const kpi=$('#incomeKpis'),table=$('#incomeTable');
+  if(!months.length){if(kpi)kpi.innerHTML='<div class="empty">No hay sueldos cargados.</div>';if(table)table.innerHTML='';return}
+  const inflation=ipcInflationMap(),indexes=ipcIndexMap();
+  const rows=months.map((m,i)=>{
+    const salary=Number(salaryFor(m)||0),prev=i?Number(salaryFor(months[i-1])||0):null;
+    const raise=prev>0?(salary/prev-1)*100:null;
+    const inf=Number.isFinite(inflation[m])?inflation[m]:null;
+    const realMonthly=raise!=null&&inf!=null?(((1+raise/100)/(1+inf/100))-1)*100:null;
+    return {month:m,salary,raise,inf,realMonthly,index:indexes[m]??null};
+  });
+  const baseRow=rows.find(r=>r.salary>0&&r.index>0);
+  rows.forEach(r=>{
+    r.needed=baseRow&&r.index>0?baseRow.salary*(r.index/baseRow.index):null;
+    r.realVsBase=r.needed>0?(r.salary/r.needed-1)*100:null;
+  });
+  const last=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;
+  const lastIpcM=latestIpcMonth(),lastInf=lastIpcM&&Number.isFinite(inflation[lastIpcM])?inflation[lastIpcM]:null;
+  const latestReal=[...rows].reverse().find(r=>r.realVsBase!=null);
+  if(kpi)kpi.innerHTML=[
+    ['Último sueldo',money(last.salary),monthLabel(last.month)],
+    ['Último aumento',last.raise==null?'—':`${nf.format(last.raise)}%`,prev?`vs ${monthLabel(prev.month)}`:'Sin mes anterior'],
+    ['Último IPC publicado',lastInf==null?'—':`${nf.format(lastInf)}%`,lastIpcM?monthLabel(lastIpcM):'Pendiente'],
+    ['Poder adquisitivo',latestReal==null?'—':`${latestReal.realVsBase>=0?'+':''}${nf.format(latestReal.realVsBase)}%`,baseRow?`vs ${monthLabel(baseRow.month)}`:'Sin base IPC']
+  ].map(x=>`<div class="kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="sub">${x[2]}</div></div>`).join('');
+
+  makeChart('incomeSalary','#incomeSalaryChart',{type:'line',data:{labels:rows.map(r=>shortMonth(r.month)),datasets:[{label:'Sueldo',data:rows.map(r=>r.salary),borderColor:palette[0],backgroundColor:palette[0],tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>money(ctx.raw)}}},scales:{y:{beginAtZero:false,ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+
+  makeChart('incomeRaiseInflation','#incomeRaiseInflationChart',{type:'bar',data:{labels:rows.map(r=>shortMonth(r.month)),datasets:[
+    {label:'Aumento sueldo',data:rows.map(r=>r.raise),backgroundColor:palette[0]},
+    {label:'Inflación IPC',data:rows.map(r=>r.inf),backgroundColor:palette[6]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw==null?'Pendiente':nf.format(ctx.raw)+'%'}`}}},scales:{y:{ticks:{callback:v=>v+'%'}}}}});
+
+  const realRows=rows.filter(r=>r.needed!=null);
+  const salaryMovingAvg3=realRows.map((r,i)=>{
+    if(i<2)return null;
+    const window=realRows.slice(i-2,i+1).map(x=>Number(x.salary||0)).filter(v=>v>0);
+    return window.length===3?window.reduce((s,v)=>s+v,0)/window.length:null;
+  });
+  makeChart('incomeReal','#incomeRealChart',{type:'line',data:{labels:realRows.map(r=>shortMonth(r.month)),datasets:[
+    {label:'Sueldo cobrado',data:realRows.map(r=>r.salary),borderColor:palette[0],backgroundColor:palette[0],tension:.25,fill:false},
+    {label:'Promedio móvil 3 meses',data:salaryMovingAvg3,borderColor:palette[5],backgroundColor:palette[5],borderDash:[2,3],borderWidth:3,tension:.32,spanGaps:true,fill:false},
+    {label:'Sueldo necesario por IPC',data:realRows.map(r=>r.needed),borderColor:palette[6],backgroundColor:palette[6],borderDash:[6,4],tension:.25,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.raw==null?null:`${ctx.dataset.label}: ${money(ctx.raw)}`}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
+
+  if(table)table.innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Aumento mensual</th><th>Inflación</th><th>Variación real mensual</th><th>Sueldo para mantener poder de compra</th><th>Poder adquisitivo vs inicio</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${monthLabel(r.month)}</td><td class="num">${money(r.salary)}</td><td class="num">${r.raise==null?'—':nf.format(r.raise)+'%'}</td><td class="num">${r.inf==null?'Pendiente':nf.format(r.inf)+'%'}</td><td class="num ${r.realMonthly!=null&&r.realMonthly<0?'bad':'good'}">${r.realMonthly==null?'—':`${r.realMonthly>=0?'+':''}${nf.format(r.realMonthly)}%`}</td><td class="num">${r.needed==null?'—':money(r.needed)}</td><td class="num ${r.realVsBase!=null&&r.realVsBase<0?'bad':'good'}">${r.realVsBase==null?'—':`${r.realVsBase>=0?'+':''}${nf.format(r.realVsBase)}%`}</td></tr>`).join('')+'</tbody>';
+  const st=$('#incomeTableStatus');if(st)st.textContent=lastIpcM?`IPC disponible hasta ${monthLabel(lastIpcM)}`:'IPC pendiente';
+  if(!ipcState.loading&&!ipcState.rows.length)refreshInflationData();
 }
 
 function renderSummary(){
@@ -1554,6 +1732,7 @@ function renderVariables(){
   makeChart('varCategory','#varCategoryChart',{
     type:'bar',
     data:{labels:catLabels,datasets:[{data:catSorted.map(x=>x[1]),backgroundColor:catSorted.map((_,i)=>i===0?'#218b68':i===1?'#3f8f86':'#2c8068'),borderRadius:4,borderSkipped:false}]},
+    plugins:[{id:'variableCategoryValueLabels',afterDatasetsDraw(chart){const meta=chart.getDatasetMeta(0),ds=chart.data.datasets[0],ctx=chart.ctx;ctx.save();ctx.font=(window.innerWidth<=700?'700 10px':'700 11px')+' system-ui,-apple-system,sans-serif';meta.data.forEach((bar,i)=>{const val=Number(ds.data[i]||0);if(!(val>0))return;const label='$'+Intl.NumberFormat('es-AR',{notation:'compact',maximumFractionDigits:1}).format(val);const inside=(bar.x-chart.chartArea.left)>68;ctx.textBaseline='middle';ctx.textAlign=inside?'right':'left';ctx.fillStyle=inside?'rgba(255,255,255,.96)':getComputedStyle(document.body).getPropertyValue('--text').trim();ctx.fillText(label,inside?bar.x-7:bar.x+7,bar.y)});ctx.restore()}}],
     options:{
       responsive:true,
       maintainAspectRatio:false,
@@ -2333,7 +2512,7 @@ function setupModal(){
     const blob=new Blob([JSON.stringify(local,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='respaldo_mis_gastos.json';a.click();URL.revokeObjectURL(a.href);
   });
 }
-setTabs(); setupTheme(); setupAdmin(); setupModal(); setupSavingModal(); setupGiftModal(); setupSavingsTableInteractions(); setupChangeManager(); setupMobileExperience(); if(isMobileDashboard())renderVariables(); else renderSummary(); setupCloud();
+setTabs(); setupTheme(); setupAdmin(); setupModal(); setupSavingModal(); setupGiftModal(); setupSavingsTableInteractions(); setupChangeManager(); setupMobileExperience(); if(isMobileDashboard())renderVariables(); else renderSummary(); refreshInflationData(); setupCloud();
 </script>
 </body>
 </html>
