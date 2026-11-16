@@ -285,10 +285,12 @@ body.dark .app-version{opacity:.58}
   #variables .chart-wrap{height:245px}
   #variables .grid2{display:grid;grid-template-columns:1fr;gap:12px}
 
-  .mobile-fab{display:flex!important;align-items:center;justify-content:center;position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:55;width:88px;height:88px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-weight:300;line-height:1;box-shadow:0 14px 38px rgba(0,0,0,.38);cursor:pointer;padding:0}
+  .mobile-fab{display:flex!important;align-items:center;justify-content:center;position:fixed;right:28px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:55;width:88px;height:88px;border:0;border-radius:50%;background:var(--accent);color:#fff;font-weight:300;line-height:1;box-shadow:0 14px 38px rgba(0,0,0,.38);cursor:pointer;padding:0}
   .mobile-fab span{display:block;font-size:64px;line-height:1;transform:translateY(-3px)}
   .mobile-fab:active{transform:scale(.96)}
-  body.mobile-flow-open .mobile-fab,body:has(.modal-backdrop.show) .mobile-fab,body:has(.mobile-sheet-backdrop.show) .mobile-fab{display:none!important}
+  .mobile-fab-label{display:none!important;position:fixed;right:72px;transform:translateX(50%);bottom:calc(111px + env(safe-area-inset-bottom));z-index:55;text-align:center;padding:7px 13px;border-radius:999px;background:var(--accent);border:0;color:#fff;font-size:11px;font-weight:850;letter-spacing:.1px;box-shadow:0 9px 24px rgba(0,0,0,.28);white-space:nowrap}
+  .mobile-fab-label.show{display:block!important}
+  body.mobile-flow-open .mobile-fab,body.mobile-flow-open .mobile-fab-label,body:has(.modal-backdrop.show) .mobile-fab,body:has(.modal-backdrop.show) .mobile-fab-label,body:has(.mobile-sheet-backdrop.show) .mobile-fab,body:has(.mobile-sheet-backdrop.show) .mobile-fab-label{display:none!important}
 
   .mobile-sheet-backdrop{display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.48);padding:0;align-items:flex-end}
   .mobile-sheet-backdrop.show{display:flex!important}
@@ -424,6 +426,9 @@ body.dark .app-version{opacity:.58}
   </section>
 
   <section class="page" id="ingresos">
+    <div class="actions" style="justify-content:flex-end;margin-bottom:14px">
+      <button class="btn primary" id="addSalaryBtn">+ Agregar ingreso</button>
+    </div>
     <div class="income-source">
       <div><strong>Ingresos y poder adquisitivo</strong><br>El IPC se actualiza automáticamente desde fuentes públicas y prioriza los últimos datos oficiales confirmados por INDEC.</div>
       <div class="income-status" id="incomeInflationStatus"><span class="income-status-dot"></span><span id="incomeInflationStatusText">Cargando IPC…</span></div>
@@ -544,10 +549,11 @@ body.dark .app-version{opacity:.58}
   </section>
   <div class="app-footer-tools">
     <button type="button" class="app-change-link" id="openChangeManager">Agregar cambio</button>
-    <footer class="app-version" aria-label="Versión de la app">v46.1126</footer>
+    <footer class="app-version" aria-label="Versión de la app">v51.1126</footer>
   </div>
 </div>
 
+<div class="mobile-fab-label mobile-only" id="mobileFabLabel" aria-hidden="true"></div>
 <button type="button" class="mobile-fab mobile-only" id="mobileAddExpenseFab" aria-label="Agregar gasto" title="Agregar gasto"><span>+</span></button>
 
 <div class="mobile-sheet-backdrop mobile-only" id="mobileMovementsSheet" aria-hidden="true">
@@ -683,6 +689,39 @@ body.dark .app-version{opacity:.58}
 </div>
 
 
+<div class="modal-backdrop" id="salaryModal">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-head"><h2>Ingresos mensuales</h2><button class="close" id="closeSalaryModal">×</button></div>
+    <div class="local-note">Administrá el sueldo y otros ingresos por separado. Los bonos, ayudas, aguinaldos y reintegros suman al ingreso total del mes, pero no alteran los gráficos de evolución salarial e IPC.</div>
+
+    <div class="admin-section" style="margin-top:14px">
+      <h3>Sueldo</h3>
+      <p>El sueldo es la base usada para evolución salarial, aumentos y poder adquisitivo.</p>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>Sueldo base</th><th>Sueldo usado</th><th class="action-col">Acción</th></tr></thead><tbody id="salaryAdminBody"></tbody></table></div>
+      <div class="admin-inline" style="margin-top:14px">
+        <div class="field"><label>Mes</label><input type="month" id="salaryNewMonth"></div>
+        <div class="field"><label>Sueldo ARS</label><input type="number" min="0.01" step="0.01" id="salaryNewAmount" placeholder="1500000"></div>
+        <button type="button" class="btn primary" id="addSalaryMonthBtn">+ Agregar / actualizar sueldo</button>
+        <button type="button" class="btn" id="saveSalaryBtn">Guardar ediciones</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Otros ingresos</h3>
+      <p>Registrá ingresos que no forman parte del sueldo mensual. Se suman al total de ingresos, pero no modifican la tendencia salarial.</p>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>Tipo</th><th>Descripción</th><th>Monto</th><th class="action-col">Acciones</th></tr></thead><tbody id="extraIncomeBody"></tbody></table></div>
+      <div class="admin-inline" style="margin-top:14px">
+        <div class="field"><label>Mes</label><input type="month" id="extraIncomeMonth"></div>
+        <div class="field"><label>Tipo</label><select id="extraIncomeType"><option>Bono</option><option>Ayuda familiar</option><option>Aguinaldo</option><option>Reintegro</option><option>Otro</option></select></div>
+        <div class="field" style="min-width:210px"><label>Descripción</label><input id="extraIncomeDescription" placeholder="Ej. Bono anual"></div>
+        <div class="field"><label>Monto ARS</label><input type="number" min="0.01" step="0.01" id="extraIncomeAmount" placeholder="250000"></div>
+        <button type="button" class="btn primary" id="addExtraIncomeBtn">+ Agregar ingreso</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-backdrop" id="adminModal">
   <div class="modal" style="max-width:860px">
     <div class="modal-head"><h2>Administrar datos</h2><button class="close" id="closeAdminModal">×</button></div>
@@ -690,25 +729,14 @@ body.dark .app-version{opacity:.58}
 
     <div class="admin-section" style="margin-top:14px">
       <h3>Tipo de cambio mensual</h3>
-      <p>Modificá el TC ARS/USD usado para convertir movimientos en dólares. El cambio se aplica automáticamente a gastos, ahorros y gastos fijos en USD de ese mes.</p>
-      <div class="admin-table"><table><thead><tr><th>Mes</th><th>TC base</th><th>TC usado</th><th class="action-col">Acción</th></tr></thead><tbody id="fxAdminBody"></tbody></table></div>
+      <p>El TC se actualiza automáticamente con el dólar oficial vendedor Banco Nación. Para el mes actual usa la cotización vigente; para meses cerrados usa el último cierre disponible del mes. Si cargás un valor manual, ese override tiene prioridad. <a href="https://dolarclaro.com/" target="_blank" rel="noopener" style="color:var(--accent)">Fuente: Dólar Claro</a>.</p>
+      <div id="fxAutoStatus" class="help" style="margin:-4px 0 10px"></div>
+      <div class="admin-table"><table><thead><tr><th>Mes</th><th>TC automático</th><th>TC usado</th><th class="action-col">Acción</th></tr></thead><tbody id="fxAdminBody"></tbody></table></div>
       <div class="admin-inline">
         <div class="field"><label>Agregar otro mes</label><input type="month" id="fxNewMonth"></div>
         <div class="field"><label>TC ARS/USD</label><input type="number" min="0.01" step="0.01" id="fxNewRate" placeholder="1550"></div>
         <button type="button" class="btn" id="addFxMonthBtn">Agregar / actualizar</button>
         <button type="button" class="btn primary" id="saveFxBtn">Guardar tipos de cambio</button>
-      </div>
-    </div>
-
-    <div class="admin-section">
-      <h3>Sueldos mensuales</h3>
-      <p>Agregá o editá el sueldo de cada mes. Los cambios actualizan automáticamente el Resumen, la evolución mensual, los porcentajes de gastos sobre sueldo y el disponible.</p>
-      <div class="admin-table"><table><thead><tr><th>Mes</th><th>Sueldo base</th><th>Sueldo usado</th><th class="action-col">Acción</th></tr></thead><tbody id="salaryAdminBody"></tbody></table></div>
-      <div class="admin-inline">
-        <div class="field"><label>Mes</label><input type="month" id="salaryNewMonth"></div>
-        <div class="field"><label>Sueldo ARS</label><input type="number" min="0.01" step="0.01" id="salaryNewAmount" placeholder="1500000"></div>
-        <button type="button" class="btn" id="addSalaryMonthBtn">Agregar / actualizar</button>
-        <button type="button" class="btn primary" id="saveSalaryBtn">Guardar sueldos</button>
       </div>
     </div>
 
@@ -800,6 +828,7 @@ local.categoryAliases = local.categoryAliases && typeof local.categoryAliases ==
 local.paymentMethods = Array.isArray(local.paymentMethods) ? local.paymentMethods : [...BASE.lists.payments];
 local.paymentAliases = local.paymentAliases && typeof local.paymentAliases === 'object' && !Array.isArray(local.paymentAliases) ? local.paymentAliases : {};
 local.salaryOverrides = local.salaryOverrides && typeof local.salaryOverrides === 'object' && !Array.isArray(local.salaryOverrides) ? local.salaryOverrides : {};
+local.extraIncomes = Array.isArray(local.extraIncomes) ? local.extraIncomes : [];
 local.fixedSpecialAdminTab = ['Seguro','Patente'].includes(local.fixedSpecialAdminTab) ? local.fixedSpecialAdminTab : 'Seguro';
 local.hb20FixedTab = ['Seguro','Patente'].includes(local.hb20FixedTab) ? local.hb20FixedTab : 'Seguro';
 if(typeof local.hb20IpcMode!=='boolean') local.hb20IpcMode=false;
@@ -815,6 +844,7 @@ let migrated=false;
 local.variables.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-var-${i}`;migrated=true}});
 local.fixed.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-fix-${i}`;migrated=true}});
 local.savings.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-sav-${i}`;migrated=true}});
+local.extraIncomes.forEach((x,i)=>{if(!x.__id){x.__id=`legacy-inc-${i}`;migrated=true}});
 if(migrated) localStorage.setItem(storeKey,JSON.stringify(local));
 let charts = {};
 let savingsSort = {key:'date', direction:'desc'};
@@ -832,12 +862,88 @@ function money(v,c='ARS'){if(v===null||v===undefined||Number.isNaN(+v))return '�
 function ym(s){return s?.slice(0,7)}
 function baseFxExact(m){const r=BASE.overview.find(x=>x.month===m);return r?.fx??null}
 function baseFxFor(m){return baseFxExact(m) ?? BASE.meta.latestFx}
-function fxFor(m){const v=Number(local.fxOverrides?.[m]);return v>0?v:baseFxFor(m)}
-function latestFxValue(){return fxFor(BASE.meta.latestFxMonth)}
+const FX_CURRENT_API_URL='https://dolarclaro.com/api/v1/oficial.json';
+const FX_HISTORY_API_URL='https://dolarclaro.com/api/v1/historico/oficial.json';
+const FX_CACHE_KEY='mateo_gastos_fx_auto_v1';
+const FX_CACHE_MAX_AGE=60*60*1000;
+let fxAutoState={monthly:{},current:null,currentDate:null,fetchedAt:null,error:null,loading:false};
+function loadFxCache(){
+  try{
+    const c=JSON.parse(localStorage.getItem(FX_CACHE_KEY)||'null');
+    if(c&&typeof c==='object'){
+      fxAutoState.monthly=c.monthly&&typeof c.monthly==='object'?c.monthly:{};
+      fxAutoState.current=Number(c.current)>0?Number(c.current):null;
+      fxAutoState.currentDate=c.currentDate||null;
+      fxAutoState.fetchedAt=c.fetchedAt||null;
+    }
+  }catch(_){ }
+}
+function normalizeFxHistory(payload){
+  const raw=Array.isArray(payload)?payload:(Array.isArray(payload?.data)?payload.data:Array.isArray(payload?.serie)?payload.serie:Array.isArray(payload?.historico)?payload.historico:[]);
+  return raw.map(r=>{
+    if(Array.isArray(r))return {date:String(r[0]||'').slice(0,10),rate:Number(r[1])};
+    return {date:String(r?.fecha||r?.date||r?.fechaActualizacion||'').slice(0,10),rate:Number(r?.venta??r?.sell??r?.valor??r?.value)};
+  }).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&Number(r.rate)>0).sort((a,b)=>a.date.localeCompare(b.date));
+}
+function monthlyCloseFx(rows){
+  const out={};
+  rows.forEach(r=>{const m=r.date.slice(0,7);if(!out[m]||r.date>out[m].date)out[m]={date:r.date,rate:r.rate}});
+  return Object.fromEntries(Object.entries(out).map(([m,v])=>[m,{date:v.date,rate:Number(v.rate)}]));
+}
+function autoFxFor(m){
+  if(!m)return null;
+  if(m===currentMonthKey()&&Number(fxAutoState.current)>0)return Number(fxAutoState.current);
+  const row=fxAutoState.monthly?.[m];
+  const v=Number(row?.rate??row);
+  return v>0?v:null;
+}
+function fxDefaultFor(m){return autoFxFor(m)??baseFxFor(m)}
+function fxFor(m){const v=Number(local.fxOverrides?.[m]);return v>0?v:fxDefaultFor(m)}
+function latestFxValue(){return fxFor(currentMonthKey())}
+function fxAutoStatusText(){
+  if(fxAutoState.loading)return 'Actualizando TC automático…';
+  const cur=autoFxFor(currentMonthKey());
+  if(cur){const when=fxAutoState.currentDate?` · actualizado ${fxAutoState.currentDate.split('-').reverse().join('/')}`:'';return `Automático activo · vendedor oficial ${nf.format(cur)} ARS/USD${when}`;}
+  if(fxAutoState.error)return 'No se pudo actualizar el TC automático. Se usa el último valor disponible o el respaldo cargado.';
+  return 'TC automático pendiente de actualización.';
+}
+async function fetchFxData(force=false){
+  if(fxAutoState.loading)return;
+  const fresh=fxAutoState.fetchedAt&&(Date.now()-new Date(fxAutoState.fetchedAt).getTime()<FX_CACHE_MAX_AGE);
+  if(!force&&fresh)return;
+  fxAutoState.loading=true;fxAutoState.error=null;
+  try{
+    const [histResult,currentResult]=await Promise.allSettled([
+      fetch(FX_HISTORY_API_URL,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`Histórico TC ${r.status}`);return r.json()}),
+      fetch(FX_CURRENT_API_URL,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(`TC actual ${r.status}`);return r.json()})
+    ]);
+    let changed=false;
+    if(histResult.status==='fulfilled'){
+      const rows=normalizeFxHistory(histResult.value);
+      if(rows.length){fxAutoState.monthly=monthlyCloseFx(rows);changed=true;}
+    }
+    if(currentResult.status==='fulfilled'){
+      const d=currentResult.value||{},v=Number(d.venta??d.sell??d.value),rawDate=String(d.actualizado||d.fechaActualizacion||d.fecha||'').slice(0,10);
+      if(v>0){fxAutoState.current=v;fxAutoState.currentDate=/^\d{4}-\d{2}-\d{2}$/.test(rawDate)?rawDate:new Date().toISOString().slice(0,10);changed=true;}
+    }
+    if(!changed)throw new Error('Las fuentes de TC no devolvieron datos válidos.');
+    fxAutoState.fetchedAt=new Date().toISOString();
+    localStorage.setItem(FX_CACHE_KEY,JSON.stringify({monthly:fxAutoState.monthly,current:fxAutoState.current,currentDate:fxAutoState.currentDate,fetchedAt:fxAutoState.fetchedAt}));
+  }catch(err){fxAutoState.error=err?.message||String(err);console.warn('No se pudo actualizar TC automático',err)}
+  finally{
+    fxAutoState.loading=false;
+    refreshDataViews();
+    if($('#adminModal')?.classList.contains('show'))renderAdmin();
+  }
+}
+loadFxCache();
 function baseSalaryExact(m){const r=BASE.overview.find(x=>x.month===m);return r?.salary??null}
 function salaryFor(m){const raw=local.salaryOverrides?.[m];if(raw!==undefined&&raw!==null&&raw!==''&&Number(raw)>0)return Number(raw);return baseSalaryExact(m)}
 function salaryMonths(){const set=new Set(BASE.overview.filter(x=>x.salary!=null).map(x=>x.month));Object.keys(local.salaryOverrides||{}).forEach(m=>set.add(m));return [...set].filter(m=>salaryFor(m)!=null).sort()}
 function latestSalaryMonth(){const ms=salaryMonths();return ms.length?ms[ms.length-1]:null}
+function extraIncomeRows(){return (local.extraIncomes||[]).filter(x=>x&&x.month&&Number(x.amount)>0).slice().sort((a,b)=>a.month.localeCompare(b.month))}
+function extraIncomeTotalFor(m){return extraIncomeRows().filter(x=>x.month===m).reduce((s,x)=>s+Number(x.amount||0),0)}
+function extraIncomeMonths(){return [...new Set(extraIncomeRows().map(x=>x.month))].sort()}
 function currentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
 const IPC_SERIES_ID='148.3_INIVELNAL_DICI_M_26';
 const IPC_API_URL=`https://apis.datos.gob.ar/series/api/series/?ids=${IPC_SERIES_ID}&last=180&format=json`;
@@ -891,8 +997,7 @@ function ipcIndexMap(){
     if(prevMonth&&out[prevMonth]>0&&Number.isFinite(inflation[m])){
       out[m]=out[prevMonth]*(1+inflation[m]/100);
     }else if(Number(raw[m])>0){
-      out[m]=Number(raw[m]);
-    }
+      out[m]=Number(raw[m]);    }
     if(Number(out[m])>0)prevMonth=m;
   }
   return out;
@@ -1161,6 +1266,8 @@ function normalizeCloudState(state){
   x.paymentMethods=Array.isArray(x.paymentMethods)?x.paymentMethods:[...BASE.lists.payments];
   x.paymentAliases=x.paymentAliases&&typeof x.paymentAliases==='object'&&!Array.isArray(x.paymentAliases)?x.paymentAliases:{};
   x.salaryOverrides=x.salaryOverrides&&typeof x.salaryOverrides==='object'&&!Array.isArray(x.salaryOverrides)?x.salaryOverrides:{};
+  x.extraIncomes=Array.isArray(x.extraIncomes)?x.extraIncomes:[];
+  x.extraIncomes.forEach((r,i)=>{if(!r.__id)r.__id=`cloud-inc-${i}`});
   x.fixedSpecialAdminTab=['Seguro','Patente'].includes(x.fixedSpecialAdminTab)?x.fixedSpecialAdminTab:'Seguro';
   x.hb20FixedTab=['Seguro','Patente'].includes(x.hb20FixedTab)?x.hb20FixedTab:'Seguro';
   if(typeof x.hb20IpcMode!=='boolean')x.hb20IpcMode=false;
@@ -1177,7 +1284,7 @@ function localHasPersonalState(x=local){
     x.variables?.length||x.fixed?.length||x.savings?.length||x.gifts?.length||x.changeRequests?.length||
     Object.keys(x.giftPaid||{}).length||Object.keys(x.fxOverrides||{}).length||
     (x.deletedItems||[]).length||Object.keys(x.edits||{}).length||
-    Object.keys(x.salaryOverrides||{}).length||Object.keys(x.categoryAliases||{}).length||Object.keys(x.paymentAliases||{}).length||
+    Object.keys(x.salaryOverrides||{}).length||(x.extraIncomes||[]).length||Object.keys(x.categoryAliases||{}).length||Object.keys(x.paymentAliases||{}).length||
     JSON.stringify(x.variableCategories||[])!==JSON.stringify(BASE.lists.variableCategories)||
     JSON.stringify(x.paymentMethods||[])!==JSON.stringify(BASE.lists.payments)
   );
@@ -1309,7 +1416,7 @@ function setupCloud(){
     catch(err){console.error(err);alert('No pude importar ese archivo JSON.');}
     e.target.value='';
   });
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudUser&&cloudReady)pullCloudState()});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cloudUser&&cloudReady)pullCloudState();fetchFxData();}});
   sb.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT'){cloudUser=null;cloudReady=false;suppressCloudSync=true;showCloudLogin();setSyncStatus('Sin conectar','');}
   });
@@ -1361,6 +1468,7 @@ function setTabs(){
     if(b.dataset.tab==='variables') renderVariables();
     if(b.dataset.tab==='ahorros') renderSavings();
     if(b.dataset.tab==='regalos') renderGifts();
+    updateMobileFabContext(b.dataset.tab);
   }));
 }
 
@@ -1403,9 +1511,12 @@ function renderIncome(){
   const last=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;
   const lastIpcM=latestIpcMonth(),lastInf=lastIpcM&&Number.isFinite(inflation[lastIpcM])?inflation[lastIpcM]:null;
   const latestReal=[...rows].reverse().find(r=>r.realVsBase!=null);
+  const currentIncomeMonth=[...new Set([...months,...extraIncomeMonths()])].sort().reverse()[0]||last.month;
+  const currentExtra=extraIncomeTotalFor(currentIncomeMonth);
   if(kpi)kpi.innerHTML=[
     ['Último sueldo',money(last.salary),monthLabel(last.month)],
-    ['Último aumento',last.raise==null?'—':`${nf.format(last.raise)}%`,prev?`vs ${monthLabel(prev.month)}`:'Sin mes anterior'],
+    ['Otros ingresos',money(currentExtra),monthLabel(currentIncomeMonth)],
+    ['Ingreso total',money((salaryFor(currentIncomeMonth)||0)+currentExtra),monthLabel(currentIncomeMonth)],
     ['Último IPC publicado',lastInf==null?'—':`${nf.format(lastInf)}%`,lastIpcM?monthLabel(lastIpcM):'Pendiente'],
     ['Poder adquisitivo',latestReal==null?'—':`${latestReal.realVsBase>=0?'+':''}${nf.format(latestReal.realVsBase)}%`,baseRow?`vs ${monthLabel(baseRow.month)}`:'Sin base IPC']
   ].map(x=>`<div class="kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="sub">${x[2]}</div></div>`).join('');
@@ -1429,7 +1540,11 @@ function renderIncome(){
     {label:'Sueldo necesario por IPC',data:realRows.map(r=>r.needed),borderColor:palette[6],backgroundColor:palette[6],borderDash:[6,4],tension:.25,fill:false}
   ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>ctx.raw==null?null:`${ctx.dataset.label}: ${money(ctx.raw)}`}}},scales:{y:{ticks:{callback:v=>'$'+Intl.NumberFormat('es-AR',{notation:'compact'}).format(v)}}}}});
 
-  if(table)table.innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Aumento mensual</th><th>Inflación</th><th>Variación real mensual</th><th>Sueldo para mantener poder de compra</th><th>Poder adquisitivo vs inicio</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${monthLabel(r.month)}</td><td class="num">${money(r.salary)}</td><td class="num">${r.raise==null?'—':nf.format(r.raise)+'%'}</td><td class="num">${r.inf==null?'Pendiente':nf.format(r.inf)+'%'}</td><td class="num ${r.realMonthly!=null&&r.realMonthly<0?'bad':'good'}">${r.realMonthly==null?'—':`${r.realMonthly>=0?'+':''}${nf.format(r.realMonthly)}%`}</td><td class="num">${r.needed==null?'—':money(r.needed)}</td><td class="num ${r.realVsBase!=null&&r.realVsBase<0?'bad':'good'}">${r.realVsBase==null?'—':`${r.realVsBase>=0?'+':''}${nf.format(r.realVsBase)}%`}</td></tr>`).join('')+'</tbody>';
+  if(table){
+    const salaryByMonth=Object.fromEntries(rows.map(r=>[r.month,r]));
+    const detailMonths=[...new Set([...months,...extraIncomeMonths()])].sort();
+    table.innerHTML='<thead><tr><th>Mes</th><th>Sueldo</th><th>Otros ingresos</th><th>Ingreso total</th><th>Aumento mensual</th><th>Inflación</th><th>Variación real mensual</th><th>Sueldo para mantener poder de compra</th><th>Poder adquisitivo vs inicio</th></tr></thead><tbody>'+detailMonths.map(m=>{const r=salaryByMonth[m];const salary=Number(salaryFor(m)||0),extra=extraIncomeTotalFor(m),total=salary+extra;return `<tr><td>${monthLabel(m)}</td><td class="num">${salary?money(salary):'—'}</td><td class="num">${extra?money(extra):'—'}</td><td class="num"><b>${money(total)}</b></td><td class="num">${r?.raise==null?'—':nf.format(r.raise)+'%'}</td><td class="num">${r?.inf==null?'Pendiente':nf.format(r.inf)+'%'}</td><td class="num ${r?.realMonthly!=null&&r.realMonthly<0?'bad':'good'}">${r?.realMonthly==null?'—':`${r.realMonthly>=0?'+':''}${nf.format(r.realMonthly)}%`}</td><td class="num">${r?.needed==null?'—':money(r.needed)}</td><td class="num ${r?.realVsBase!=null&&r.realVsBase<0?'bad':'good'}">${r?.realVsBase==null?'—':`${r.realVsBase>=0?'+':''}${nf.format(r.realVsBase)}%`}</td></tr>`}).join('')+'</tbody>';
+  }
   const st=$('#incomeTableStatus');if(st)st.textContent=lastIpcM?`IPC disponible hasta ${monthLabel(lastIpcM)}`:'IPC pendiente';
   if(!ipcState.loading&&!ipcState.rows.length)refreshInflationData();
 }
@@ -1881,8 +1996,7 @@ function renderSavings(){
   const contributions=rows.filter(x=>Number(x.amount)>0).reduce((s,x)=>s+Math.max(0,arsValue(x)),0);
   const withdrawals=rows.filter(x=>Number(x.amount)<0).reduce((s,x)=>s+Math.abs(Math.min(0,arsValue(x))),0);
   $('#savingKpis').innerHTML=[
-    ['Neto aportado aprox.',money(total),`Conversión con TC de cada mes`],
-    ['Equivalente USD',money(latestRate?total/latestRate:0,'USD'),`TC actual ${nf.format(latestRate)}`],
+    ['Neto aportado aprox.',money(total),`Conversión con TC de cada mes`],    ['Equivalente USD',money(latestRate?total/latestRate:0,'USD'),`TC actual ${nf.format(latestRate)}`],
     ['Aportes acumulados',money(contributions),'Flujos positivos'],
     ['Retiros / usos',money(withdrawals),'Flujos negativos']
   ].map(k=>`<div class="kpi"><div class="label">${k[0]}</div><div class="value">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join('');
@@ -2086,9 +2200,11 @@ function renderGifts(){
 
 function adminMonths(){
   const set=new Set(BASE.overview.map(x=>x.month));
+  set.add(currentMonthKey());
   Object.keys(local.fxOverrides||{}).forEach(m=>set.add(m));
   [...local.variables,...local.savings].forEach(x=>{const m=ym(x.date);if(m)set.add(m)});
-  return [...set].sort();
+  salaryMonths().forEach(m=>set.add(m));
+  return [...set].filter(Boolean).sort();
 }
 function baseFixedSpecial(type,m){
   const source=type==='Seguro'?BASE.insurance:BASE.patent;
@@ -2158,10 +2274,17 @@ function resetFixedSpecial(key){
 }
 function renderAdmin(){
   const body=$('#fxAdminBody'); if(!body)return;
-  body.innerHTML=adminMonths().map(m=>{const original=baseFxExact(m);const current=fxFor(m);const edited=local.fxOverrides[m]!=null;return `<tr><td><b>${monthLabel(m)}</b></td><td class="num">${original?nf.format(original):'—'}</td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-fx-month="${m}" value="${current}"></td><td class="action-col"><button type="button" class="icon-btn" data-reset-fx="${m}" ${edited?'':'disabled'}>↺ Original</button></td></tr>`}).join('');
+  body.innerHTML=adminMonths().map(m=>{const automatic=autoFxFor(m)??baseFxExact(m);const current=fxFor(m);const edited=local.fxOverrides[m]!=null;return `<tr><td><b>${monthLabel(m)}</b></td><td class="num">${automatic?nf.format(automatic):'—'}</td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-fx-month="${m}" value="${current}"></td><td class="action-col"><button type="button" class="icon-btn" data-reset-fx="${m}" ${edited?'':'disabled'}>↺ Automático</button></td></tr>`}).join('');
+  const fxStatus=$('#fxAutoStatus');if(fxStatus)fxStatus.textContent=fxAutoStatusText();
   const salaryBody=$('#salaryAdminBody');
   if(salaryBody){
     salaryBody.innerHTML=salaryMonths().map(m=>{const original=baseSalaryExact(m);const current=salaryFor(m);const edited=local.salaryOverrides[m]!=null;const resetLabel=original!=null?'↺ Original':'Eliminar carga';return `<tr><td><b>${monthLabel(m)}</b></td><td class="num">${original!=null?money(original):'—'}</td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-salary-month="${m}" value="${current??''}"></td><td class="action-col"><button type="button" class="icon-btn ${original==null&&edited?'danger':''}" data-reset-salary="${m}" ${edited?'':'disabled'}>${resetLabel}</button></td></tr>`}).join('')||'<tr><td colspan="4" class="empty">No hay sueldos cargados.</td></tr>';
+  }
+  const extraBody=$('#extraIncomeBody');
+  if(extraBody){
+    const incomeTypes=['Bono','Ayuda familiar','Aguinaldo','Reintegro','Otro'];
+    const extras=extraIncomeRows().slice().sort((a,b)=>b.month.localeCompare(a.month));
+    extraBody.innerHTML=extras.length?extras.map(r=>`<tr><td><input type="month" data-extra-income-month="${r.__id}" value="${r.month}"></td><td><select data-extra-income-type="${r.__id}">${incomeTypes.map(t=>`<option ${t===r.type?'selected':''}>${t}</option>`).join('')}</select></td><td><input type="text" data-extra-income-desc="${r.__id}" value="${escHtml(r.description||'')}" placeholder="Descripción"></td><td class="num"><input class="fx-input" type="number" min="0.01" step="0.01" data-extra-income-amount="${r.__id}" value="${Number(r.amount||0)}"></td><td class="action-col"><div class="action-buttons"><button type="button" class="icon-btn" data-save-extra-income="${r.__id}">Guardar</button><button type="button" class="icon-btn danger" data-delete-extra-income="${r.__id}">Eliminar</button></div></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No hay otros ingresos cargados.</td></tr>';
   }
   const specialBody=$('#fixedSpecialAdminBody');
   if(specialBody){
@@ -2197,10 +2320,28 @@ function renderAdmin(){
 }
 function setupAdmin(){
   const modal=$('#adminModal'), open=()=>{renderAdmin();modal.classList.add('show')}, close=()=>modal.classList.remove('show');
+  const salaryModal=$('#salaryModal');
+  const openSalary=()=>{renderAdmin();salaryModal.classList.add('show');const current=currentMonthKey();if($('#salaryNewMonth')&&!$('#salaryNewMonth').value)$('#salaryNewMonth').value=current;if($('#extraIncomeMonth')&&!$('#extraIncomeMonth').value)$('#extraIncomeMonth').value=current;};
+  const closeSalary=()=>salaryModal.classList.remove('show');
   $('#adminBtn').addEventListener('click',open);$('#closeAdminModal').addEventListener('click',close);
+  $('#addSalaryBtn').addEventListener('click',openSalary);$('#closeSalaryModal').addEventListener('click',closeSalary);
   modal.addEventListener('click',e=>{if(e.target===modal)close()});
+  salaryModal.addEventListener('click',e=>{if(e.target===salaryModal)closeSalary()});
   $('#fxAdminBody').addEventListener('click',e=>{const b=e.target.closest('[data-reset-fx]');if(!b)return;delete local.fxOverrides[b.dataset.resetFx];saveLocal();renderAdmin();refreshDataViews()});
   $('#salaryAdminBody').addEventListener('click',e=>{const b=e.target.closest('[data-reset-salary]');if(!b)return;delete local.salaryOverrides[b.dataset.resetSalary];saveLocal();renderAdmin();refreshDataViews()});
+  $('#extraIncomeBody').addEventListener('click',e=>{
+    const save=e.target.closest('[data-save-extra-income]'),del=e.target.closest('[data-delete-extra-income]');
+    if(!save&&!del)return;
+    const id=(save||del).dataset[save?'saveExtraIncome':'deleteExtraIncome'];
+    const idx=(local.extraIncomes||[]).findIndex(x=>x.__id===id);if(idx<0)return;
+    if(del){local.extraIncomes.splice(idx,1);saveLocal();renderAdmin();refreshDataViews();return;}
+    const month=$(`[data-extra-income-month="${id}"]`)?.value;
+    const type=$(`[data-extra-income-type="${id}"]`)?.value||'Otro';
+    const description=$(`[data-extra-income-desc="${id}"]`)?.value.trim()||type;
+    const amount=Number($(`[data-extra-income-amount="${id}"]`)?.value);
+    if(!month||!(amount>0))return;
+    local.extraIncomes[idx]={...local.extraIncomes[idx],month,type,description,amount};saveLocal();renderAdmin();refreshDataViews();
+  });
   $('#fixedSpecialAdminBody').addEventListener('click',e=>{
     const save=e.target.closest('[data-save-fixed-special]');
     const del=e.target.closest('[data-delete-fixed-special]');
@@ -2239,7 +2380,7 @@ function setupAdmin(){
   $('#addVarCategoryBtn').addEventListener('click',()=>{if(addVariableCategory($('#newVarCategory').value))$('#newVarCategory').value=''});
   $('#newVarCategory').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addVarCategoryBtn').click()}});
   $('#saveFxBtn').addEventListener('click',()=>{
-    $$('[data-fx-month]').forEach(inp=>{const m=inp.dataset.fxMonth,v=Number(inp.value),orig=baseFxExact(m);if(!(v>0))return;if(orig!=null&&Math.abs(v-orig)<1e-9)delete local.fxOverrides[m];else local.fxOverrides[m]=v});
+    $$('[data-fx-month]').forEach(inp=>{const m=inp.dataset.fxMonth,v=Number(inp.value),automatic=fxDefaultFor(m);if(!(v>0))return;if(automatic!=null&&Math.abs(v-automatic)<1e-9)delete local.fxOverrides[m];else local.fxOverrides[m]=v});
     saveLocal();renderAdmin();refreshDataViews();
   });
   $('#addFxMonthBtn').addEventListener('click',()=>{const m=$('#fxNewMonth').value,v=Number($('#fxNewRate').value);if(!m||!(v>0))return;local.fxOverrides[m]=v;saveLocal();renderAdmin();refreshDataViews();$('#fxNewRate').value=''});
@@ -2249,6 +2390,12 @@ function setupAdmin(){
   });
   $('#addSalaryMonthBtn').addEventListener('click',()=>{const m=$('#salaryNewMonth').value,v=Number($('#salaryNewAmount').value);if(!m||!(v>0))return;const orig=baseSalaryExact(m);if(orig!=null&&Math.abs(v-orig)<1e-9)delete local.salaryOverrides[m];else local.salaryOverrides[m]=v;saveLocal();renderAdmin();refreshDataViews();$('#salaryNewAmount').value=''});
   $('#salaryNewAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addSalaryMonthBtn').click()}});
+  $('#addExtraIncomeBtn').addEventListener('click',()=>{
+    const month=$('#extraIncomeMonth').value,type=$('#extraIncomeType').value||'Otro',description=$('#extraIncomeDescription').value.trim()||type,amount=Number($('#extraIncomeAmount').value);
+    if(!month||!(amount>0))return;
+    local.extraIncomes.push({__id:uid('inc'),month,type,description,amount});saveLocal();renderAdmin();refreshDataViews();$('#extraIncomeDescription').value='';$('#extraIncomeAmount').value='';
+  });
+  $('#extraIncomeAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#addExtraIncomeBtn').click()}});
 }
 
 function applyTheme(theme){
@@ -2464,8 +2611,29 @@ function openExpenseEdit(key){
 function activateDashboardTab(name){
   $$('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
   $$('.page').forEach(x=>x.classList.toggle('active',x.id===name));
-  if(name==='resumen')renderSummary();if(name==='fijos')renderFixed();if(name==='variables')renderVariables();if(name==='ahorros')renderSavings();if(name==='regalos')renderGifts();
+  if(name==='resumen')renderSummary();if(name==='ingresos')renderIncome();if(name==='fijos')renderFixed();if(name==='variables')renderVariables();if(name==='ahorros')renderSavings();if(name==='regalos')renderGifts();
+  updateMobileFabContext(name);
 }
+function updateMobileFabContext(tabName){
+  const fab=$('#mobileAddExpenseFab'),label=$('#mobileFabLabel');
+  if(!fab||!label)return;
+  const tab=tabName||document.querySelector('.page.active')?.id||'variables';
+  let text='',aria='Agregar gasto';
+  if(tab==='ingresos'){text='Agregar ingreso';aria='Agregar ingreso';}
+  else if(tab==='ahorros'){text='Agregar ahorro';aria='Agregar ahorro';}
+  label.textContent=text;
+  label.classList.toggle('show',!!text);
+  label.setAttribute('aria-hidden',text?'false':'true');
+  fab.setAttribute('aria-label',aria);fab.title=aria;
+}
+
+function handleMobileFabAction(){
+  const active=document.querySelector('.page.active')?.id||'variables';
+  if(active==='ingresos'){ $('#addSalaryBtn')?.click(); return; }
+  if(active==='ahorros'){ $('#addSavingBtn')?.click(); return; }
+  openMobileExpenseFlow();
+}
+
 function resetMobileExpenseFlow(){
   const flow=$('#mobileExpenseFlow');if(!flow)return;
   flow.dataset.expression='';flow.dataset.amount='';flow.dataset.expenseType='variable';
@@ -2509,7 +2677,8 @@ function setupMobileExperience(){
   $('#mobileMenuBtn').addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('show')});
   document.addEventListener('click',e=>{if(!e.target.closest('.mobile-menu-wrap'))menu.classList.remove('show')});
   menu.addEventListener('click',e=>{const b=e.target.closest('[data-mobile-action]');if(!b)return;menu.classList.remove('show');const a=b.dataset.mobileAction;if(a==='sync')$('#syncNowBtn').click();if(a==='theme')$('#themeBtn').click();if(a==='admin')$('#adminBtn').click();if(a==='logout')$('#logoutBtn').click()});
-  $('#mobileAddExpenseFab').addEventListener('click',openMobileExpenseFlow);
+  $('#mobileAddExpenseFab').addEventListener('click',handleMobileFabAction);
+  updateMobileFabContext(document.querySelector('.page.active')?.id||'variables');
   $('#mobileVarFilterBtn').addEventListener('click',()=>$('.variable-controls').classList.toggle('mobile-open'));
   $('#mobileApplyVarFilters').addEventListener('click',()=>{$('.variable-controls').classList.remove('mobile-open');renderVariables()});
   $('#mobileClearVarFilters').addEventListener('click',()=>{$('#varCategory').value='';$('#varPayment').value='';$('#varSearch').value='';renderVariables()});
@@ -2583,7 +2752,7 @@ function setupModal(){
     const blob=new Blob([JSON.stringify(local,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='respaldo_mis_gastos.json';a.click();URL.revokeObjectURL(a.href);
   });
 }
-setTabs(); setupTheme(); setupAdmin(); setupModal(); setupSavingModal(); setupGiftModal(); setupSavingsTableInteractions(); setupChangeManager(); setupMobileExperience(); if(isMobileDashboard())renderVariables(); else renderSummary(); refreshInflationData(); setupCloud();
+setTabs(); setupTheme(); setupAdmin(); setupModal(); setupSavingModal(); setupGiftModal(); setupSavingsTableInteractions(); setupChangeManager(); setupMobileExperience(); if(isMobileDashboard())renderVariables(); else renderSummary(); refreshInflationData(); fetchFxData(); setupCloud();
 </script>
 </body>
 </html>
